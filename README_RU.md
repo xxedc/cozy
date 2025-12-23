@@ -6,7 +6,7 @@
 !Aiogram
 !Marzban
 
-🇬🇧 English README
+[🇬🇧 English README](README.md)
 
 ## ✨ Возможности
 

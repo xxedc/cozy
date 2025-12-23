@@ -6,6 +6,8 @@ A modern, asynchronous Telegram bot for selling and managing VPN subscriptions b
 !Aiogram
 !Marzban
 
+[🇷🇺 Русский README](README_RU.md)
+
 ## ✨ Features
 
 *   **🛒 Subscription Store:** Buy VPN keys for different durations (1 month to 1 year).
