@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+venv/
+.env
+.vscode/
+.idea/
+.qodo/
+*.log
+bot.log
+reset_db.py
+*.db
+*.sqlite
+.DS_Store
+data/
