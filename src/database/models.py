@@ -22,7 +22,10 @@ class User(Base):
     balance = Column(Integer, default=0)  # Внутренний баланс
     created_at = Column(DateTime, default=datetime.now)
     language_code = Column(String, default="en")
-    is_trial_used = Column(Boolean, default=False)  # Флаг использования триала
+    is_trial_used = Column(Boolean, default=False)
+    referrer_id = Column(BigInteger, nullable=True)  # 邀请人ID
+    referral_count = Column(Integer, default=0)  # 成功邀请数
+    referral_earnings = Column(Integer, default=0)  # 累计返佣余额
 
     # Связи
     subscriptions = relationship("Subscription", back_populates="user")
@@ -68,6 +71,9 @@ class Subscription(Base):
     marzban_username = Column(String)  # Логин в панели Marzban
     uuid = Column(String)  # Уникальный ключ
     vless_key = Column(String)  # Сама строка подключения vless://...
+    subscription_url = Column(String, nullable=True)
+    plan_type = Column(String, default='time')  # 'time' 时间套餐 / 'traffic' 流量包
+    traffic_gb = Column(Integer, default=0)  # 流量包GB数
     
     status = Column(String)  # 'active', 'expired', 'banned'
     expires_at = Column(DateTime)  # Когда отключать

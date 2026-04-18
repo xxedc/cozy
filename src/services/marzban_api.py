@@ -1,37 +1,161 @@
-import asyncio
-import uuid
-import random 
+import aiohttp
+from src.config import settings
 
 class MarzbanAPI:
-    """
-    Класс для работы с API Marzban.
-    """
+    def __init__(self):
+        self.host = settings.MARZBAN_HOST
+        self.username = settings.MARZBAN_USERNAME
+        self.password = settings.MARZBAN_PASSWORD
 
-    async def create_key(self, username: str) -> str:
-        await asyncio.sleep(1)
+    async def _get_token(self) -> str:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.host}/api/admin/token",
+                data={"username": self.username, "password": self.password}
+            ) as resp:
+                data = await resp.json()
+                return data["access_token"]
 
-        fake_uuid = str(uuid.uuid4())
+    async def _headers(self):
+        token = await self._get_token()
+        return {"Authorization": f"Bearer {token}"}
 
-        key = f"vless://{fake_uuid}@1.1.1.1:443?security=reality&sni=google.com&fp=chrome&type=tcp&headerType=none#{username}_TEST"
-
-        return key
-
-    async def get_user_usage(self, username: str) -> int:
+    async def create_key(self, username: str, expire_timestamp: int = 0, data_limit_gb: int = 0) -> tuple:
         """
-        Возвращает текущий использованный трафик пользователя (в байтах).
+        创建或获取用户
+        expire_timestamp: Unix时间戳，0=永不过期
+        data_limit_gb: 流量限制GB，0=不限制
         """
-        # TODO: Здесь должен быть реальный запрос к API Marzban: GET /api/user/{username}
-        # resp = await client.get(f"/api/user/{username}")
-        # return resp.json().get('used_traffic', 0)
-        
-        await asyncio.sleep(0.1)
-        return random.randint(100, 50000000)  # Mock: возвращает случайное число для теста
+        headers = await self._headers()
+        data_limit_bytes = data_limit_gb * 1024**3 if data_limit_gb > 0 else 0
+
+        payload = {
+            "username": username,
+            "proxies": {
+                "vless": {"flow": "xtls-rprx-vision"},
+                "vmess": {},
+                "trojan": {},
+                "shadowsocks": {"method": "chacha20-ietf-poly1305"}
+            },
+            "inbounds": {
+                "vless": ["VLESS_REALITY","VLESS_WS_TLS","VLESS_GRPC_TLS","VLESS_HTTPUPGRADE_TLS"],
+                "vmess": ["VMESS_WS_TLS","VMESS_GRPC_TLS","VMESS_HTTPUPGRADE_TLS"],
+                "trojan": ["TROJAN_TCP_TLS","TROJAN_WS_TLS","TROJAN_GRPC_TLS"],
+                "shadowsocks": ["SHADOWSOCKS_TCP"]
+            },
+            "expire": expire_timestamp,
+            "data_limit": data_limit_bytes,
+            "data_limit_reset_strategy": "month" if data_limit_gb > 0 else "no_reset",
+            "status": "active"
+        }
+
+        async with aiohttp.ClientSession() as session:
+            # 先尝试获取已有用户
+            async with session.get(
+                f"{self.host}/api/user/{username}",
+                headers=headers
+            ) as r:
+                if r.status == 200:
+                    data = await r.json()
+                    # 更新到期时间和流量
+                    update_payload = {
+                        "expire": expire_timestamp,
+                        "data_limit": data_limit_bytes,
+                        "data_limit_reset_strategy": "month" if data_limit_gb > 0 else "no_reset",
+                        "status": "active"
+                    }
+                    async with session.put(
+                        f"{self.host}/api/user/{username}",
+                        json=update_payload,
+                        headers=headers
+                    ) as ur:
+                        if ur.status == 200:
+                            data = await ur.json()
+                else:
+                    # 用户不存在，创建
+                    async with session.post(
+                        f"{self.host}/api/user",
+                        json=payload,
+                        headers=headers
+                    ) as resp:
+                        data = await resp.json()
+
+        vless_key = ""
+        links = data.get("links", [])
+        for link in links:
+            if link.startswith("vless://"):
+                vless_key = link
+                break
+        if not vless_key and links:
+            vless_key = links[0]
+
+        sub_url = data.get("subscription_url", "")
+        if sub_url and not sub_url.startswith("http"):
+            sub_url = self.host + sub_url
+
+        return vless_key, sub_url
+
+    async def update_user_expire(self, username: str, expire_timestamp: int, data_limit_gb: int = 0):
+        """单独更新用户到期时间和流量"""
+        headers = await self._headers()
+        data_limit_bytes = data_limit_gb * 1024**3 if data_limit_gb > 0 else 0
+        payload = {
+            "expire": expire_timestamp,
+            "data_limit": data_limit_bytes,
+            "data_limit_reset_strategy": "month" if data_limit_gb > 0 else "no_reset",
+            "status": "active"
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.put(
+                f"{self.host}/api/user/{username}",
+                json=payload,
+                headers=headers
+            ) as r:
+                return await r.json()
+
+    async def get_subscription_url(self, username: str) -> str:
+        """获取最新订阅链接"""
+        try:
+            headers = await self._headers()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.host}/api/user/{username}",
+                    headers=headers
+                ) as r:
+                    if r.status == 200:
+                        data = await r.json()
+                        sub_url = data.get("subscription_url", "")
+                        if sub_url and not sub_url.startswith("http"):
+                            sub_url = self.host + sub_url
+                        return sub_url
+        except Exception:
+            pass
+        return ""
 
     async def get_user_status(self, username: str) -> dict:
-        """
-        Возвращает статус пользователя (онлайн и т.д.)
-        """
-        await asyncio.sleep(0.1)
-        return {"online": random.randint(0, 2)}
-    
+        try:
+            headers = await self._headers()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.host}/api/user/{username}",
+                    headers=headers
+                ) as resp:
+                    data = await resp.json()
+                    return {"online": 1 if data.get("online_at") else 0}
+        except Exception:
+            return {"online": 0}
+
+    async def get_user_usage(self, username: str) -> int:
+        try:
+            headers = await self._headers()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.host}/api/user/{username}",
+                    headers=headers
+                ) as resp:
+                    data = await resp.json()
+                    return data.get("used_traffic", 0)
+        except Exception:
+            return 0
+
 api = MarzbanAPI()

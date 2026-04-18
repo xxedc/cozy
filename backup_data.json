@@ -1,0 +1,102 @@
+{
+  "users": [
+    {
+      "0": 8258898191,
+      "1": "gitxxd",
+      "2": 0,
+      "3": "2026-04-18 02:25:22.382058",
+      "4": "zh",
+      "5": 1,
+      "6": null,
+      "7": 0,
+      "8": 0
+    },
+    {
+      "0": 8171456258,
+      "1": "xxedce",
+      "2": 0,
+      "3": "2026-04-18 02:31:16.608140",
+      "4": "zh",
+      "5": 1,
+      "6": null,
+      "7": 0,
+      "8": 0
+    },
+    {
+      "0": 8078468447,
+      "1": "hrthrtgbdfvbsdghjyj",
+      "2": 0,
+      "3": "2026-04-18 05:07:27.790309",
+      "4": "ru",
+      "5": 1,
+      "6": null,
+      "7": 0,
+      "8": 0
+    }
+  ],
+  "subscriptions": [
+    {
+      "0": 1,
+      "1": 8258898191,
+      "2": 3,
+      "3": null,
+      "4": "trial_8258898191",
+      "5": null,
+      "6": "vless://2436d1f5-2d7c-41c0-ad3b-1ddc7d788a9d@167.179.86.97:8443?security=reality&type=tcp&headerType=&flow=xtls-rprx-vision&path=&host=&sni=www.microsoft.com&fp=chrome&pbk=HaREIyGyfxA3wYy_V56MZCAt3EhvWhpzHDybCjt8aUw&sid=abcd1234#%F0%9F%9A%80%20Marz%20%28trial_8258898191%29%20%5BVLESS%20-%20tcp%5D",
+      "7": null,
+      "8": "2026-04-25 02:25:32.378178",
+      "9": 0,
+      "10": 1,
+      "11": "https://s.tlte.top/sub/dHJpYWxfODI1ODg5ODE5MSwxNzc2NDc5MTM0vQzZWd-_Xi",
+      "12": "time",
+      "13": 30
+    },
+    {
+      "0": 2,
+      "1": 8171456258,
+      "2": 1,
+      "3": null,
+      "4": "trial_8171456258",
+      "5": null,
+      "6": "vless://8d61d52a-a47c-4511-a08a-b143741e4a7f@167.179.86.97:8443?security=reality&type=tcp&headerType=&flow=xtls-rprx-vision&path=&host=&sni=www.microsoft.com&fp=chrome&pbk=HaREIyGyfxA3wYy_V56MZCAt3EhvWhpzHDybCjt8aUw&sid=abcd1234#%F0%9F%9A%80%20Marz%20%28trial_8171456258%29%20%5BVLESS%20-%20tcp%5D",
+      "7": null,
+      "8": "2026-04-25 02:31:23.444372",
+      "9": 0,
+      "10": 1,
+      "11": "https://s.tlte.top/sub/dHJpYWxfODE3MTQ1NjI1OCwxNzc2NDc5NDg1VuXx1Dt9lG",
+      "12": "time",
+      "13": 30
+    },
+    {
+      "0": 3,
+      "1": 8078468447,
+      "2": 1,
+      "3": null,
+      "4": "trial_8078468447",
+      "5": null,
+      "6": "vless://866f2a3f-64eb-4f0c-a917-2cfbb7934100@167.179.86.97:8443?security=reality&type=tcp&headerType=&flow=xtls-rprx-vision&path=&host=&sni=www.microsoft.com&fp=chrome&pbk=HaREIyGyfxA3wYy_V56MZCAt3EhvWhpzHDybCjt8aUw&sid=abcd1234#%F0%9F%9A%80%20Marz%20%28trial_8078468447%29%20%5BVLESS%20-%20tcp%5D",
+      "7": null,
+      "8": "2026-04-25 05:07:45.583097",
+      "9": 0,
+      "10": 1,
+      "11": "https://s.tlte.top/sub/dHJpYWxfODA3ODQ2ODQ0NywxNzc2NDg4ODY4CIfE6CEouT",
+      "12": "time",
+      "13": 30
+    }
+  ],
+  "transactions": [],
+  "promo_codes": [
+    {
+      "0": 1,
+      "1": "123",
+      "2": "days",
+      "3": 3,
+      "4": null,
+      "5": 2,
+      "6": 1,
+      "7": null,
+      "8": 1
+    }
+  ],
+  "promo_usages": []
+}

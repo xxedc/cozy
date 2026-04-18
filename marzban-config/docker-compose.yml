@@ -1,0 +1,11 @@
+services:
+  marzban:
+    image: gozargah/marzban:latest
+    restart: always
+    env_file: .env
+    network_mode: host
+    volumes:
+      - /var/lib/marzban:/var/lib/marzban
+      - /opt/marzban/shared.py:/code/app/telegram/utils/shared.py
+      - /opt/marzban/keyboard.py:/code/app/telegram/utils/keyboard.py
+      - /opt/marzban/admin.py:/code/app/telegram/handlers/admin.py

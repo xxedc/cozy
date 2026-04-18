@@ -7,19 +7,19 @@ from src.keyboards.builders import location_kb, buy_type_kb, duration_kb, instru
 from src.keyboards.reply import get_main_kb
 from src.utils.translations import get_text
 from src.services.marzban_api import api
-from src.database.requests import add_subscription, get_user, set_trial_used, async_session
+from src.database.requests import add_subscription, get_user, set_trial_used, async_session, get_user_subscriptions
 from sqlalchemy import select
 
 router = Router()
 
-@router.message(F.text.in_([get_text("ru", "buy_btn"), get_text("en", "buy_btn")]))
+@router.message(F.text.in_(["🚀 开通订阅"]))
 async def start_buy(message: Message, t, lang):
     # Шаг 1: Предлагаем выбрать тип (Мульти или Соло)
     user = await get_user(message.from_user.id)
     balance = user.balance if user else 0
     await message.answer(t("buy_menu_text", balance=balance), reply_markup=buy_type_kb(lang), parse_mode="HTML")
 
-@router.message(F.text.in_([get_text("ru", "trial_btn"), get_text("en", "trial_btn")]))
+@router.message(F.text.in_(["🎁 免费试用"]))
 async def get_trial(message: Message, t, lang):
     user_id = message.from_user.id
     
@@ -49,29 +49,38 @@ async def process_trial_selection(callback: CallbackQuery, t, lang):
         # Генерируем ключ для ТЕСТА (Лимит 1 устройство)
         # Временно убираем limit=1 из вызова API, так как метод его не поддерживает
         username = f"trial_{user_id}"
-        key = await api.create_key(username=username)
-        expire_date = datetime.now() + timedelta(days=1) # 24 часа
-        
-        # Сохраняем подписку
+        expire_date = datetime.now() + timedelta(days=7)  # 7天试用
+        expire_ts = int(expire_date.timestamp())
+
+        # 同步到 Marzban：7天有效期，30GB流量不重置
+        key, sub_url = await api.create_key(
+            username=username,
+            expire_timestamp=expire_ts,
+            data_limit_gb=30
+        )
+
         await add_subscription(
             tg_id=user_id,
             key_data=key,
             server_code=location_code,
             expires_at=expire_date,
             device_limit=1,
-            marzban_username=username
+            marzban_username=username,
+            subscription_url=sub_url,
+            plan_type="time",
+            traffic_gb=30
         )
         
         # Отмечаем, что триал использован
         await set_trial_used(user_id)
         
         # Форматируем время для ответа
-        date_str = expire_date.strftime('%d.%m.%Y %H:%M')
+        date_str = expire_date.strftime('%Y-%m-%d %H:%M')
         # Для триала всегда < 1 дня, поэтому показываем часы и минуты
         if lang == "ru":
-            remaining = "23ч 59м" # Примерно
+            remaining = "6天 23小时"  # 7天试用
         else:
-            remaining = "23h 59m"
+            remaining = "6天 23小时"  # 7天试用
             
         location_name = t("swe") if location_code == "swe" else t("ger")
         
@@ -79,11 +88,29 @@ async def process_trial_selection(callback: CallbackQuery, t, lang):
         
         # Удаляем сообщение с кнопками и отправляем новое с обновленной клавиатурой (без кнопки теста)
         await callback.message.delete()
-        await callback.message.answer(
-            t("trial_success", location=location_name, date=date_str, remaining=remaining) + f"\n<code>{key}</code>",
-            parse_mode="HTML",
-            reply_markup=instruction_links_kb().as_markup()
-        )
+        days_left_trial = (expire_date - datetime.now()).days
+        hours_left_trial = ((expire_date - datetime.now()).seconds) // 3600
+        remaining_trial = str(days_left_trial) + "天 " + str(hours_left_trial) + "小时"
+
+        if sub_url:
+            trial_msg = (
+                "<b>🎁 试用已激活！</b>\n\n"
+                "📡 节点：" + location_name + "\n"
+                "⏳ 有效期：7天 / 30GB\n"
+                "⏳ 到期时间：" + date_str + "\n"
+                "⏱ 剩余时间：" + remaining_trial + "\n\n"
+                "📋 <b>订阅链接（复制到客户端导入）：</b>\n"
+                "<code>" + sub_url + "</code>"
+            )
+        else:
+            trial_msg = (
+                "<b>🎁 试用已激活！</b>\n\n"
+                "📡 节点：" + location_name + "\n"
+                "⏳ 有效期：7天 / 30GB\n"
+                "⏳ 到期时间：" + date_str + "\n"
+                "<code>" + key + "</code>"
+            )
+        await callback.message.answer(trial_msg, parse_mode="HTML", reply_markup=instruction_links_kb().as_markup())
 
         # Обновляем главное меню (убираем кнопку теста)
         await callback.message.answer(
@@ -144,20 +171,20 @@ async def show_payment_methods(callback: CallbackQuery, t, lang):
         parse_mode="HTML"
     )
 
-async def issue_key(user_id: int, username: str, location_code: str, days: int, t, lang, message: Message):
+async def issue_key(user_id: int, username: str, location_code: str, days: int, t, lang, message: Message, price: int = 0):
     """Вспомогательная функция для выдачи ключа после успешной оплаты"""
     
     # Логируем действие!
     logger.info(f"💰 Юзер {user_id} получает ключ: {location_code} на {days} дней")
 
     if location_code == "multi":
-        location_name = "Universal (Multi-Access)"
+        location_name = "🌍 全球通（所有节点）"
         device_limit = 5 # Премиум лимит
     elif location_code == "swe":
-        location_name = t("swe")
+        location_name = "🇯🇵 日本"
         device_limit = 3 # Стандартный лимит
     else:
-        location_name = t("ger")
+        location_name = "🇯🇵 日本（备用）"
         device_limit = 3 # Стандартный лимит
     
     await message.edit_text(t("gen_key"))
@@ -166,34 +193,126 @@ async def issue_key(user_id: int, username: str, location_code: str, days: int, 
         # Генерируем ключ с учетом лимита устройств
         # Временно убираем limit из вызова API
         username = f"user_{user_id}"
-        key = await api.create_key(username=username)
-        expire_date = datetime.now() + timedelta(days=days)
-        
+
+        # 获取已有订阅，时间套餐叠加到期时间
+        existing_subs = await get_user_subscriptions(user_id)
+        now_dt = datetime.now()
+
+        if days == 0:
+            # 流量包：设置一个很远的日期，实际靠流量控制
+            expire_date = datetime.now() + timedelta(days=3650)
+            new_traffic = 500
+        else:
+            # 时间套餐：在已有时间套餐到期时间基础上叠加（不叠加流量包时间）
+            existing_time = None
+            for s in existing_subs:
+                pt = getattr(s, 'plan_type', 'time')
+                if pt == 'time' and s.expires_at > now_dt:
+                    existing_time = s
+                    break
+            if existing_time:
+                expire_date = existing_time.expires_at + timedelta(days=days)
+            else:
+                expire_date = now_dt + timedelta(days=days)
+            new_traffic = 0
+
+        # 同步到期时间和流量到 Marzban 面板
+        import time as _time
+        if days == 0:
+            _expire_ts = 0        # 流量包不限时间
+            _data_gb = 500        # 500GB每月重置
+        else:
+            _expire_ts = int(expire_date.timestamp())
+            _data_gb = 200        # 时间套餐200GB每月重置
+
+        key, sub_url = await api.create_key(
+            username=username,
+            expire_timestamp=_expire_ts,
+            data_limit_gb=_data_gb
+        )
+
+        # 用 Marzban 返回的最新订阅链接（确保和面板一致）
+        if sub_url:
+            import aiohttp as _aio_sync
+            try:
+                _h_sync = await api._headers()
+                async with _aio_sync.ClientSession() as _s_sync:
+                    async with _s_sync.get(
+                        api.host + "/api/user/" + username,
+                        headers=_h_sync
+                    ) as _r_sync:
+                        if _r_sync.status == 200:
+                            _d_sync = await _r_sync.json()
+                            _latest = _d_sync.get("subscription_url", "")
+                            if _latest:
+                                if not _latest.startswith("http"):
+                                    _latest = api.host + _latest
+                                sub_url = _latest
+            except Exception:
+                pass
+
         await add_subscription(
             tg_id=user_id,
             key_data=key,
             server_code=location_code,
             expires_at=expire_date,
             device_limit=device_limit,
-            marzban_username=username
+            marzban_username=username,
+            subscription_url=sub_url,
+            plan_type="traffic" if days == 0 else "time",
+            traffic_gb=new_traffic
         )
         
+        # 触发邀请返佣
+        try:
+            from src.database.requests import process_referral_reward
+            reward = await process_referral_reward(user_id, price if "price" in dir() else 0)
+            if reward:
+                logger.info("💰 邀请返佣已发放")
+        except Exception:
+            pass
+
+        # 记录消费账单
+        try:
+            from src.database.requests import add_billing_record
+            plan_label = "流量包 500GB" if days == 0 else (str(days) + "天订阅")
+            await add_billing_record(
+                user_id,
+                -price,
+                "purchase",
+                "购买" + plan_label + " - " + location_name
+            )
+        except Exception:
+            pass
+
         # Логируем успех!
         logger.success(f"✅ Ключ выдан юзеру {user_id}")
-        
-        # Форматируем время
-        date_str = expire_date.strftime('%d.%m.%Y %H:%M')
-        days_left = (expire_date - datetime.now()).days
-        if lang == "ru":
-            remaining = f"{days_left}д"
-        else:
-            remaining = f"{days_left}d"
 
-        await message.answer(
-            t("key_ready", location=location_name, key=key, date=date_str, remaining=remaining),
-            parse_mode="HTML",
-            reply_markup=instruction_links_kb().as_markup()
-        )
+        # 计算显示时间
+        if days == 0:
+            time_line = "⏳ 有效期：永久（无到期时间）"
+        else:
+            date_str = expire_date.strftime("%Y-%m-%d %H:%M")
+            days_left = (expire_date - datetime.now()).days
+            remaining = str(days_left) + "天"
+            time_line = "⏳ 到期时间：" + date_str + "\n⏱ 剩余时间：" + remaining
+
+        if sub_url:
+            msg = (
+                "✅ <b>购买成功！</b>\n\n"
+                "📡 节点：" + location_name + "\n"
+                + time_line + "\n\n"
+                "📋 <b>订阅链接（支持全部协议，复制到客户端导入）：</b>\n"
+                "<code>" + sub_url + "</code>"
+            )
+        else:
+            msg = (
+                "✅ <b>购买成功！</b>\n\n"
+                "📡 节点：" + location_name + "\n"
+                + time_line + "\n\n"
+                "<code>" + key + "</code>"
+            )
+        await message.answer(msg, parse_mode="HTML", reply_markup=instruction_links_kb().as_markup())
     except Exception as e:
         logger.error(f"❌ Ошибка при выдаче ключа юзеру {user_id}: {e}")
         await message.edit_text(t("error"), parse_mode="HTML")
@@ -220,7 +339,7 @@ async def process_balance_pay(callback: CallbackQuery, t, lang):
         logger.info(f"💸 Списано {price}р с баланса юзера {user_id}")
 
     # Выдаем ключ
-    await issue_key(user_id, callback.from_user.username, location_code, days, t, lang, callback.message)
+    await issue_key(user_id, callback.from_user.username, location_code, days, t, lang, callback.message, price=price)
 
 @router.callback_query(F.data.startswith("confirm_online_"))
 async def process_online_pay(callback: CallbackQuery, t, lang):
@@ -237,4 +356,4 @@ async def process_online_pay(callback: CallbackQuery, t, lang):
     # А выдачу ключа делаем в pre_checkout_query / successful_payment
     
     # Для теста сразу выдаем:
-    await issue_key(callback.from_user.id, callback.from_user.username, location_code, days, t, lang, callback.message)
+    await issue_key(callback.from_user.id, callback.from_user.username, location_code, days, t, lang, callback.message, price=price)

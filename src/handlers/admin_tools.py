@@ -20,7 +20,6 @@ from src.keyboards.builders import (
 
 router = Router()
 
-# --- FSM States ---
 class AdminStates(StatesGroup):
     find_user = State()
     add_balance = State()
@@ -29,18 +28,15 @@ class AdminStates(StatesGroup):
     create_promo_value = State()
     create_promo_uses = State()
 
-# --- Main Menu ---
-
 @router.message(Command("admin"), F.from_user.id.in_(settings.ADMIN_IDS))
 async def admin_panel(message: Message, state: FSMContext):
     await state.clear()
     total_users, active_subs = await get_stats()
-    
     text = (
-        f"👮‍♂️ <b>Админ-панель</b>\n\n"
-        f"👥 Всего пользователей: <b>{total_users}</b>\n"
-        f"💎 Активных подписок: <b>{active_subs}</b>\n\n"
-        f"Выберите действие:"
+        "<b>👮 管理员面板</b>\n\n"
+        "👥 总用户数：<b>" + str(total_users) + "</b>\n"
+        "💎 活跃订阅数：<b>" + str(active_subs) + "</b>\n\n"
+        "请选择操作："
     )
     await message.answer(text, reply_markup=admin_main_kb(), parse_mode="HTML")
 
@@ -49,21 +45,19 @@ async def admin_home_cb(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     total_users, active_subs = await get_stats()
     text = (
-        f"👮‍♂️ <b>Админ-панель</b>\n\n"
-        f"👥 Всего пользователей: <b>{total_users}</b>\n"
-        f"💎 Активных подписок: <b>{active_subs}</b>"
+        "<b>👮 管理员面板</b>\n\n"
+        "👥 总用户数：<b>" + str(total_users) + "</b>\n"
+        "💎 活跃订阅数：<b>" + str(active_subs) + "</b>\n\n"
+        "请选择操作："
     )
     with suppress(TelegramBadRequest):
         await callback.message.edit_text(text, reply_markup=admin_main_kb(), parse_mode="HTML")
     await callback.answer()
 
-# --- User Management ---
-
 @router.callback_query(F.data == "admin_users")
 async def admin_users_start(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
-        "👥 <b>Управление пользователями</b>\n\n"
-        "Отправьте <b>ID</b> пользователя или его <b>@username</b> ответным сообщением.",
+        "👥 <b>用户管理</b>\n\n请发送用户的 <b>ID</b> 或 <b>@用户名</b>。",
         reply_markup=admin_back_kb(),
         parse_mode="HTML"
     )
@@ -71,31 +65,62 @@ async def admin_users_start(callback: CallbackQuery, state: FSMContext):
 
 @router.message(AdminStates.find_user)
 async def find_user_handler(message: Message, state: FSMContext):
+    from src.services.marzban_api import api as marz_api
+    from datetime import datetime as dt
+    import aiohttp as aio
+
     query = message.text.strip()
     user = None
-    
     if query.isdigit():
         user = await get_user(int(query))
     else:
         user = await get_user_by_username(query)
-    
+
     if not user:
-        await message.answer("❌ Пользователь не найден. Попробуйте еще раз или нажмите Назад.", reply_markup=admin_back_kb("admin_users"))
+        await message.answer("❌ 未找到用户，请重试或点击返回。", reply_markup=admin_back_kb("admin_users"))
         return
 
-    # Показываем профиль найденного юзера
     subs = await get_user_subscriptions(user.id)
-    subs_count = len(subs)
-    
+    now = dt.now()
+    active_subs = [s for s in subs if s.expires_at > now]
+    best_sub = sorted(active_subs, key=lambda s: s.expires_at, reverse=True)[0] if active_subs else None
+
+    used_gb = 0
+    sub_detail = ""
+    if best_sub:
+        try:
+            headers = await marz_api._headers()
+            async with aio.ClientSession() as sess:
+                async with sess.get(marz_api.host + "/api/user/" + best_sub.marzban_username, headers=headers) as r:
+                    d = await r.json()
+                    used = d.get("used_traffic") or 0
+                    dlimit = d.get("data_limit") or 0
+                    used_gb = round(used / 1024**3, 2)
+                    limit_gb = round(dlimit / 1024**3, 2) if dlimit else "无限制"
+        except Exception:
+            used_gb = 0
+            limit_gb = "无限制"
+
+        days_left = (best_sub.expires_at - now).days
+        expire_str = "无到期时间" if days_left >= 3640 else best_sub.expires_at.strftime("%Y-%m-%d")
+        days_str = "永久" if days_left >= 3640 else (str(days_left) + " 天")
+        sub_detail = (
+            "\n\n<b>最新订阅：</b>"
+            "\n  ⏳ 到期：" + expire_str +
+            "\n  ⏱ 剩余：" + days_str +
+            "\n  📶 已用：" + str(used_gb) + " GB / " + str(limit_gb) + " GB"
+        )
+
     text = (
-        f"👤 <b>Пользователь найден!</b>\n\n"
-        f"🆔 ID: <code>{user.id}</code>\n"
-        f"👤 Username: @{user.username or 'Нет'}\n"
-        f"💰 Баланс: <b>{user.balance}₽</b>\n"
-        f"💎 Подписок: <b>{subs_count}</b>\n"
-        f"📅 Регистрация: {user.created_at.strftime('%d.%m.%Y')}"
-    )
-    
+        "👤 <b>用户信息</b>\n\n"
+        "🆔 ID：<code>" + str(user.id) + "</code>\n"
+        "👤 用户名：@" + (user.username or "无") + "\n"
+        "💰 余额：<b>" + str(user.balance) + "¥</b>\n"
+        "💎 活跃订阅：<b>" + str(len(active_subs)) + "</b> 个\n"
+        "📶 已用流量：<b>" + str(used_gb) + " GB</b>\n"
+        "📅 注册：" + user.created_at.strftime("%Y-%m-%d")
+    ) + sub_detail
+
     await message.answer(text, reply_markup=admin_user_action_kb(user.id), parse_mode="HTML")
     await state.clear()
 
@@ -103,23 +128,21 @@ async def find_user_handler(message: Message, state: FSMContext):
 async def show_user_profile_cb(callback: CallbackQuery, state: FSMContext):
     user_id = int(callback.data.split("_")[3])
     user = await get_user(user_id)
-    
     if not user:
-        await callback.answer("❌ Пользователь не найден", show_alert=True)
+        await callback.answer("❌ 未找到该用户", show_alert=True)
         return
-
     subs = await get_user_subscriptions(user.id)
-    subs_count = len(subs)
-    
+    from datetime import datetime as dt
+    now = dt.now()
+    active_subs = [s for s in subs if s.expires_at > now]
     text = (
-        f"👤 <b>Пользователь найден!</b>\n\n"
-        f"🆔 ID: <code>{user.id}</code>\n"
-        f"👤 Username: @{user.username or 'Нет'}\n"
-        f"💰 Баланс: <b>{user.balance}₽</b>\n"
-        f"💎 Подписок: <b>{subs_count}</b>\n"
-        f"📅 Регистрация: {user.created_at.strftime('%d.%m.%Y')}"
+        "👤 <b>用户信息</b>\n\n"
+        "🆔 ID：<code>" + str(user.id) + "</code>\n"
+        "👤 用户名：@" + (user.username or "无") + "\n"
+        "💰 余额：<b>" + str(user.balance) + "¥</b>\n"
+        "💎 活跃订阅：<b>" + str(len(active_subs)) + "</b> 个\n"
+        "📅 注册：" + user.created_at.strftime("%Y-%m-%d")
     )
-    
     await callback.message.edit_text(text, reply_markup=admin_user_action_kb(user.id), parse_mode="HTML")
     await state.clear()
 
@@ -127,11 +150,9 @@ async def show_user_profile_cb(callback: CallbackQuery, state: FSMContext):
 async def ask_balance_amount(callback: CallbackQuery, state: FSMContext):
     user_id = int(callback.data.split("_")[3])
     await state.update_data(target_user_id=user_id)
-    
     await callback.message.edit_text(
-        f"💰 Введите сумму для пополнения баланса пользователя <code>{user_id}</code>:\n"
-        "(Можно ввести отрицательное число для списания)",
-        reply_markup=admin_back_kb(f"admin_user_profile_{user_id}"),
+        "💰 请输入要为用户 <code>" + str(user_id) + "</code> 充值的金额：\n（输入负数可扣除余额）",
+        reply_markup=admin_back_kb("admin_user_profile_" + str(user_id)),
         parse_mode="HTML"
     )
     await state.set_state(AdminStates.add_balance)
@@ -141,22 +162,20 @@ async def process_add_balance(message: Message, state: FSMContext):
     try:
         amount = int(message.text)
         data = await state.get_data()
-        user_id = data['target_user_id']
-        
+        user_id = data["target_user_id"]
         await update_user_balance(user_id, amount)
-        
-        await message.answer(f"✅ Баланс пользователя {user_id} успешно изменен на {amount}₽.", reply_markup=admin_back_kb(f"admin_user_profile_{user_id}"))
+        await message.answer(
+            "✅ 已成功将用户 " + str(user_id) + " 的余额修改 " + str(amount) + "¥。",
+            reply_markup=admin_back_kb("admin_user_profile_" + str(user_id))
+        )
         await state.clear()
     except ValueError:
-        await message.answer("❌ Введите корректное число.")
-
-# --- Broadcast ---
+        await message.answer("❌ 请输入有效数字。")
 
 @router.callback_query(F.data == "admin_broadcast")
 async def broadcast_start(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
-        "✉️ <b>Рассылка сообщений</b>\n\n"
-        "Отправьте текст сообщения (можно с фото/видео), которое нужно разослать всем пользователям.",
+        "✉️ <b>群发消息</b>\n\n请发送要群发的内容（支持图片/视频）。",
         reply_markup=admin_back_kb(),
         parse_mode="HTML"
     )
@@ -166,26 +185,20 @@ async def broadcast_start(callback: CallbackQuery, state: FSMContext):
 async def broadcast_process(message: Message, state: FSMContext):
     users = await get_all_users_ids()
     count = 0
-    
-    status_msg = await message.answer(f"⏳ Начинаю рассылку на {len(users)} пользователей...")
-    
+    status_msg = await message.answer("⏳ 正在向 " + str(len(users)) + " 位用户发送消息...")
     for user_id in users:
         try:
-            # Метод copy_message позволяет отправить копию любого сообщения (текст, фото, стикер)
             await message.copy_to(chat_id=user_id)
             count += 1
         except Exception:
-            pass # Игнорируем ошибки (блок бота и т.д.)
-            
-    await status_msg.edit_text(f"✅ Рассылка завершена!\nУспешно отправлено: {count} из {len(users)}")
+            pass
+    await status_msg.edit_text("✅ 群发完成！\n成功发送：" + str(count) + " / " + str(len(users)))
     await state.clear()
-
-# --- Promo Codes ---
 
 @router.callback_query(F.data == "admin_promos")
 async def promo_menu(callback: CallbackQuery):
     await callback.message.edit_text(
-        "🎟 <b>Управление промокодами</b>\n\nВыберите действие:",
+        "🎟 <b>优惠码管理</b>\n\n请选择操作：",
         reply_markup=admin_promos_main_kb(),
         parse_mode="HTML"
     )
@@ -193,18 +206,17 @@ async def promo_menu(callback: CallbackQuery):
 @router.callback_query(F.data == "admin_promo_create_start")
 async def promo_create_type(callback: CallbackQuery):
     await callback.message.edit_text(
-        "🎟 <b>Создание промокода</b>\n\nВыберите тип награды:",
+        "🎟 <b>创建优惠码</b>\n\n请选择奖励类型：",
         reply_markup=admin_promo_type_kb(),
         parse_mode="HTML"
     )
 
 @router.callback_query(F.data.startswith("create_promo_"))
 async def promo_ask_code(callback: CallbackQuery, state: FSMContext):
-    p_type = callback.data.split("_")[2] # balance or days
+    p_type = callback.data.split("_")[2]
     await state.update_data(promo_type="balance" if p_type == "balance" else "days")
-    
     await callback.message.edit_text(
-        "✍️ <b>Введите название промокода</b> (например, <code>SALE2024</code>):",
+        "✍️ <b>请输入优惠码名称</b>（例如：<code>SALE2024</code>）：",
         reply_markup=admin_back_kb("admin_promo_create_start"),
         parse_mode="HTML"
     )
@@ -214,10 +226,9 @@ async def promo_ask_code(callback: CallbackQuery, state: FSMContext):
 async def promo_ask_value(message: Message, state: FSMContext):
     await state.update_data(promo_code=message.text.strip())
     data = await state.get_data()
-    p_type_text = "сумму пополнения (₽)" if data['promo_type'] == 'balance' else "количество дней"
-    
+    p_type_text = "充值金额（¥）" if data["promo_type"] == "balance" else "天数"
     await message.answer(
-        f"🔢 Введите {p_type_text} (число):",
+        "🔢 请输入" + p_type_text + "（数字）：",
         reply_markup=admin_back_kb("admin_promo_create_start")
     )
     await state.set_state(AdminStates.create_promo_value)
@@ -227,70 +238,53 @@ async def promo_ask_uses(message: Message, state: FSMContext):
     try:
         value = int(message.text)
         await state.update_data(promo_value=value)
-        
         await message.answer(
-            "🔢 <b>Введите количество активаций</b> (число):\n"
-            "0 — для безлимитного использования.",
+            "🔢 <b>请输入最大使用次数</b>（数字）：\n0 = 无限次使用",
             reply_markup=admin_back_kb("admin_promos"),
             parse_mode="HTML"
         )
         await state.set_state(AdminStates.create_promo_uses)
     except ValueError:
-        await message.answer("❌ Введите число.")
+        await message.answer("❌ 请输入数字。")
 
 @router.message(AdminStates.create_promo_uses)
 async def promo_finish(message: Message, state: FSMContext):
     try:
         max_uses = int(message.text)
-        if max_uses < 0: raise ValueError
-        
+        if max_uses < 0:
+            raise ValueError
         data = await state.get_data()
-        
-        success = await create_promo_code(data['promo_code'], data['promo_type'], data['promo_value'], max_uses=max_uses)
-        
+        success = await create_promo_code(data["promo_code"], data["promo_type"], data["promo_value"], max_uses=max_uses)
         if success:
-            uses_text = "Безлимит" if max_uses == 0 else str(max_uses)
-            
-            type_map = {
-                "balance": "💰 Баланс",
-                "days": "🗓 Дни подписки",
-                "subscription": "🎁 Подписка"
-            }
-            type_display = type_map.get(data['promo_type'], data['promo_type'])
-            
+            uses_text = "无限" if max_uses == 0 else str(max_uses)
+            type_map = {"balance": "💰 余额充值", "days": "🗓 天数兑换", "subscription": "🎁 赠送订阅"}
+            type_display = type_map.get(data["promo_type"], data["promo_type"])
             await message.answer(
-                f"✅ Промокод <code>{data['promo_code']}</code> создан!\n"
-                f"Тип: {type_display}\n"
-                f"Значение: {data['promo_value']}\n"
-                f"Активаций: {uses_text}",
+                "✅ 优惠码 <code>" + data["promo_code"] + "</code> 创建成功！\n"
+                "类型：" + type_display + "\n"
+                "数值：" + str(data["promo_value"]) + "\n"
+                "使用次数：" + uses_text,
                 reply_markup=admin_promos_main_kb(),
                 parse_mode="HTML"
             )
         else:
-            await message.answer("❌ Такой промокод уже существует!", reply_markup=admin_back_kb("admin_promos"))
-            
+            await message.answer("❌ 该优惠码已存在！", reply_markup=admin_back_kb("admin_promos"))
         await state.clear()
     except ValueError:
-        await message.answer("❌ Введите неотрицательное число.")
-
-# --- Promo List & Management ---
+        await message.answer("❌ 请输入非负数。")
 
 @router.callback_query(F.data == "admin_promo_list")
 async def promo_list(callback: CallbackQuery):
     promos = await get_all_promos()
-    
     if not promos:
         await callback.message.edit_text(
-            "📜 <b>Список активных промокодов</b>\n\n"
-            "Список пуст.",
+            "📜 <b>活跃优惠码列表</b>\n\n列表为空。",
             reply_markup=admin_back_kb("admin_promos"),
             parse_mode="HTML"
         )
         return
-
     await callback.message.edit_text(
-        "📜 <b>Список активных промокодов</b>\n"
-        "Нажмите на код для управления:",
+        "📜 <b>活跃优惠码列表</b>\n点击优惠码进行管理：",
         reply_markup=admin_promos_list_kb(promos),
         parse_mode="HTML"
     )
@@ -299,26 +293,18 @@ async def promo_list(callback: CallbackQuery):
 async def promo_view(callback: CallbackQuery):
     promo_id = int(callback.data.split("_")[3])
     promo = await get_promo_by_id(promo_id)
-    
     if not promo:
-        await callback.answer("Промокод не найден", show_alert=True)
+        await callback.answer("优惠码不存在", show_alert=True)
         await promo_list(callback)
         return
-
-    uses_str = f"{promo.current_uses} / {promo.max_uses if promo.max_uses > 0 else '∞'}"
-    
-    type_map = {
-        "balance": "💰 Баланс",
-        "days": "🗓 Дни подписки",
-        "subscription": "🎁 Подписка"
-    }
+    uses_str = str(promo.current_uses) + " / " + (str(promo.max_uses) if promo.max_uses > 0 else "∞")
+    type_map = {"balance": "💰 余额充值", "days": "🗓 天数兑换", "subscription": "🎁 赠送订阅"}
     type_display = type_map.get(promo.type, promo.type)
-
     text = (
-        f"🎟 <b>Промокод:</b> <code>{promo.code}</code>\n\n"
-        f"Тип: <b>{type_display}</b>\n"
-        f"Значение: <b>{promo.value}</b>\n"
-        f"Использований: <b>{uses_str}</b>"
+        "🎟 <b>优惠码：</b><code>" + promo.code + "</code>\n\n"
+        "类型：<b>" + type_display + "</b>\n"
+        "数值：<b>" + str(promo.value) + "</b>\n"
+        "使用次数：<b>" + uses_str + "</b>"
     )
     await callback.message.edit_text(text, reply_markup=admin_promo_view_kb(promo.id), parse_mode="HTML")
 
@@ -327,39 +313,63 @@ async def promo_delete_handler(callback: CallbackQuery):
     promo_id = int(callback.data.split("_")[3])
     try:
         await delete_promo(promo_id)
-        await callback.answer("✅ Промокод удален")
+        await callback.answer("✅ 优惠码已删除")
         await promo_list(callback)
     except Exception as e:
-        logger.exception(f"Ошибка при удалении промокода {promo_id}")
-        await callback.answer("❌ Ошибка при удалении. Проверьте логи.", show_alert=True)
+        logger.exception("删除优惠码 " + str(promo_id) + " 时出错")
+        await callback.answer("❌ 删除失败，请查看日志。", show_alert=True)
 
-# --- Stats Shortcut ---
 @router.callback_query(F.data == "admin_stats_full")
 async def admin_stats_shortcut(callback: CallbackQuery, state: FSMContext):
-    # Просто обновляем главное меню, так как там уже есть статистика
-    await admin_home_cb(callback, state)
+    from src.services.marzban_api import api as marz_api
+    import aiohttp as aio
 
-# --- Emoji Capture Tool (Legacy) ---
-@router.message(F.entities, F.from_user.id.in_(settings.ADMIN_IDS))
-async def capture_emoji_id(message: Message):
-    for entity in message.entities:
-        if entity.type == "custom_emoji":
-            # Telegram API использует смещение в UTF-16, поэтому кодируем/декодируем для точности
-            text_utf16 = message.text.encode('utf-16-le')
-            start = entity.offset * 2
-            end = (entity.offset + entity.length) * 2
-            emoji_char = text_utf16[start:end].decode('utf-16-le')
-            
-            await message.reply(
-                f"🆔 ID эмодзи: <code>{entity.custom_emoji_id}</code>\n"
-                f"Эмодзи: <tg-emoji emoji-id='{entity.custom_emoji_id}'>{emoji_char}</tg-emoji>",
-                parse_mode="HTML"
-            )
+    await callback.answer()
+    loading = await callback.message.answer("⏳ 正在获取统计数据...")
 
-            # Пытаемся получить и отправить эмодзи как стикер (обход ограничений отображения в тексте)
-            try:
-                stickers = await message.bot.get_custom_emoji_stickers(custom_emoji_ids=[entity.custom_emoji_id])
-                if stickers:
-                    await message.answer_sticker(stickers[0].file_id)
-            except Exception:
-                pass
+    try:
+        headers = await marz_api._headers()
+        async with aio.ClientSession() as sess:
+            async with sess.get(marz_api.host + "/api/system", headers=headers) as r:
+                sys_data = await r.json()
+            async with sess.get(marz_api.host + "/api/users?limit=500", headers=headers) as r2:
+                users_data = await r2.json()
+
+        all_users = users_data.get("users", [])
+        active_count = sum(1 for u in all_users if u.get("status") == "active")
+        total_traffic = sum((u.get("used_traffic") or 0) for u in all_users)
+        total_gb = round(total_traffic / 1024**3, 2)
+
+        top_users = sorted(all_users, key=lambda u: u.get("used_traffic") or 0, reverse=True)[:5]
+        top_lines = ""
+        for i, u in enumerate(top_users, 1):
+            used = round((u.get("used_traffic") or 0) / 1024**3, 2)
+            name = u.get("username", "unknown")
+            top_lines += "\n  " + str(i) + ". " + name + " — " + str(used) + " GB"
+
+        cpu = sys_data.get("cpu_usage", 0)
+        mem = sys_data.get("mem_used", 0)
+        mem_total = sys_data.get("mem_total", 1)
+        mem_pct = round(mem / mem_total * 100) if mem_total else 0
+        inc_total = round((sys_data.get("incoming_bandwidth") or 0) / 1024**3, 2)
+        out_total = round((sys_data.get("outgoing_bandwidth") or 0) / 1024**3, 2)
+
+        text = (
+            "<b>📊 节点统计数据</b>\n\n"
+            "<b>🖥 服务器状态</b>\n"
+            "  CPU：" + str(cpu) + "%\n"
+            "  内存：" + str(mem_pct) + "%\n\n"
+            "<b>📶 流量统计</b>\n"
+            "  总入站：" + str(inc_total) + " GB\n"
+            "  总出站：" + str(out_total) + " GB\n"
+            "  全用户已用：" + str(total_gb) + " GB\n\n"
+            "<b>👥 用户统计</b>\n"
+            "  总用户：" + str(len(all_users)) + "\n"
+            "  活跃中：" + str(active_count) + "\n\n"
+            "<b>🏆 流量 Top 5：</b>" + top_lines
+        )
+    except Exception as e:
+        text = "❌ 获取失败：" + str(e)
+
+    await loading.delete()
+    await callback.message.answer(text, parse_mode="HTML", reply_markup=admin_back_kb("admin_home"))

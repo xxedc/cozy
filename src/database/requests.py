@@ -39,24 +39,68 @@ async def get_all_users_ids():
     async with async_session() as session:
         return (await session.scalars(select(User.id))).all()
 
-async def add_subscription(tg_id: int, key_data: str, server_code: str, expires_at, device_limit: int = 0, marzban_username: str = None):
+async def add_subscription(tg_id: int, key_data: str, server_code: str, expires_at, device_limit: int = 0, marzban_username: str = None, subscription_url: str = None, plan_type: str = "time", traffic_gb: int = 0):
     async with async_session() as session:
-        # Ищем сервер по коду, если нет — создаем временный (чтобы не падало)
         server = await session.scalar(select(Server).where(Server.name == server_code))
         if not server:
             server = Server(name=server_code, ip_address="127.0.0.1", location=server_code.upper())
             session.add(server)
             await session.flush()
 
-        sub = Subscription(
-            user_id=tg_id,
-            vless_key=key_data,
-            server_id=server.id,
-            expires_at=expires_at,
-            device_limit=device_limit,
-            marzban_username=marzban_username
-        )
-        session.add(sub)
+        if plan_type == "traffic":
+            # 流量包：找已有流量包记录累加，没有则新建
+            existing = await session.scalar(
+                select(Subscription).where(
+                    Subscription.user_id == tg_id,
+                    Subscription.plan_type == "traffic"
+                )
+            )
+            if existing:
+                existing.traffic_gb = (existing.traffic_gb or 0) + traffic_gb
+                existing.marzban_username = marzban_username
+                if subscription_url:
+                    existing.subscription_url = subscription_url
+            else:
+                session.add(Subscription(
+                    user_id=tg_id,
+                    vless_key=key_data,
+                    server_id=server.id,
+                    expires_at=expires_at,
+                    device_limit=device_limit,
+                    marzban_username=marzban_username,
+                    subscription_url=subscription_url,
+                    plan_type="traffic",
+                    traffic_gb=traffic_gb
+                ))
+        else:
+            # 时间套餐：找已有时间套餐记录更新到期时间，没有则新建
+            existing = await session.scalar(
+                select(Subscription).where(
+                    Subscription.user_id == tg_id,
+                    Subscription.plan_type == "time"
+                )
+            )
+            if existing:
+                existing.vless_key = key_data
+                existing.server_id = server.id
+                existing.expires_at = expires_at
+                existing.device_limit = device_limit
+                existing.marzban_username = marzban_username
+                if subscription_url:
+                    existing.subscription_url = subscription_url
+                existing.status = "active"
+            else:
+                session.add(Subscription(
+                    user_id=tg_id,
+                    vless_key=key_data,
+                    server_id=server.id,
+                    expires_at=expires_at,
+                    device_limit=device_limit,
+                    marzban_username=marzban_username,
+                    subscription_url=subscription_url,
+                    plan_type="time",
+                    traffic_gb=traffic_gb
+                ))
         await session.commit()
 
 async def get_user_subscriptions(tg_id: int):
@@ -222,3 +266,86 @@ async def update_user_balance(user_id: int, amount: int):
         if user:
             user.balance += amount
             await session.commit()
+
+async def set_referrer(tg_id: int, referrer_id: int):
+    """设置邀请人（只在用户第一次注册时设置）"""
+    async with async_session() as session:
+        user = await session.scalar(select(User).where(User.id == tg_id))
+        if user and not user.referrer_id and user.id != referrer_id:
+            user.referrer_id = referrer_id
+            await session.commit()
+            return True
+    return False
+
+async def process_referral_reward(buyer_id: int, purchase_amount: int):
+    """购买成功后给邀请人发放奖励"""
+    from datetime import datetime, timedelta
+    async with async_session() as session:
+        buyer = await session.scalar(select(User).where(User.id == buyer_id))
+        if not buyer or not buyer.referrer_id:
+            return False
+
+        # 检查是否是首次购买（referral_count用来判断邀请人是否已获过这个买家的奖励）
+        # 用 referral_earnings 字段记录
+        referrer = await session.scalar(select(User).where(User.id == buyer.referrer_id))
+        if not referrer:
+            return False
+
+        # 计算返佣金额（10%）
+        reward_balance = int(purchase_amount * 0.1)
+
+        # 给邀请人加余额
+        referrer.balance += reward_balance
+        referrer.referral_earnings += reward_balance
+        referrer.referral_count += 1
+
+        # 给邀请人延长订阅7天
+        sub = await session.scalar(
+            select(Subscription).where(
+                Subscription.user_id == referrer.id,
+                Subscription.plan_type == "time"
+            )
+        )
+        if sub:
+            if sub.expires_at > datetime.now():
+                sub.expires_at = sub.expires_at + timedelta(days=7)
+            else:
+                sub.expires_at = datetime.now() + timedelta(days=7)
+
+        await session.commit()
+        return reward_balance
+
+async def get_referral_stats(tg_id: int):
+    """获取用户邀请统计"""
+    async with async_session() as session:
+        user = await session.scalar(select(User).where(User.id == tg_id))
+        if not user:
+            return None
+        return {
+            "count": user.referral_count or 0,
+            "earnings": user.referral_earnings or 0
+        }
+
+async def add_billing_record(tg_id: int, amount: int, record_type: str, description: str = ""):
+    """添加消费/充值记录 type: purchase/topup/refund/referral"""
+    from src.database.models import Transaction
+    async with async_session() as session:
+        record = Transaction(
+            user_id=tg_id,
+            amount=amount,
+            description=description
+        )
+        session.add(record)
+        await session.commit()
+
+async def get_billing_records(tg_id: int, limit: int = 10):
+    """获取用户最近消费记录"""
+    from src.database.models import Transaction
+    async with async_session() as session:
+        result = await session.scalars(
+            select(Transaction)
+            .where(Transaction.user_id == tg_id)
+            .order_by(Transaction.created_at.desc())
+            .limit(limit)
+        )
+        return result.all()

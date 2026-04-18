@@ -3,7 +3,7 @@ from src.utils.translations import get_text
 
 def buy_type_kb(lang: str = "ru"):
     builder = InlineKeyboardBuilder()
-    # Сначала "Мульти" - психологически более дорогой и желаемый продукт ставим первым
+    # 全球通放第一，心理上更有吸引力
     builder.button(text=get_text(lang, "btn_multi"), callback_data="buy_multi")
     builder.button(text=get_text(lang, "btn_single"), callback_data="type_single")
     builder.adjust(1)
@@ -14,7 +14,7 @@ def location_kb(lang: str = "ru", prefix: str = "buy"):
     builder.button(text=get_text(lang, "swe"), callback_data=f"{prefix}_swe")
     builder.button(text=get_text(lang, "ger"), callback_data=f"{prefix}_ger")
     
-    # Кнопку "Назад" показываем только при покупке, так как там есть меню типов
+    # 只在购买时显示返回按钮
     if prefix == "buy":
         builder.button(text=get_text(lang, "btn_back"), callback_data="back_to_types")
         
@@ -23,30 +23,24 @@ def location_kb(lang: str = "ru", prefix: str = "buy"):
 
 def duration_kb(lang: str, location_code: str):
     builder = InlineKeyboardBuilder()
-    
-    # Базовая цена зависит от типа (Мульти чуть дороже)
-    base_price = 199 if location_code == "multi" else 169
-    
-    # Сетка тарифов (дни, множитель цены)
+
+    # 套餐价格（人民币），每月200GB，超出自动停止
+    # 1个月=15¥，3个月=40¥(-11%)，6个月=75¥(-17%)，12个月=140¥(-22%)
     plans = [
-        (30, 1, "duration_1m"),
-        (90, 2.5, "duration_3m"),   # 3 месяца по цене 2.5
-        (180, 4.5, "duration_6m"),  # 6 месяцев по цене 4.5
-        (365, 8, "duration_1y")     # 12 месяцев по цене 8
+        (30,  200,  15,  "🗓 1个月 — 15¥（200GB）"),
+        (90,  600,  40,  "🗓 3个月 — 40¥（600GB）🔥 省11%"),
+        (180, 1200, 75,  "🗓 6个月 — 75¥（1200GB）🔥 省17%"),
+        (365, 2400, 140, "🗓 12个月 — 140¥（2400GB）👑 省22%"),
+        (0,   500,  35,  "📦 流量包 — 35¥（500GB 无到期）"),
     ]
 
-    for days, multiplier, text_key in plans:
-        price = int(base_price * multiplier)
-        # callback: pay_локация_дни_цена
+    for days, traffic_gb, price, label in plans:
         builder.button(
-            text=get_text(lang, text_key, price=price), 
+            text=label,
             callback_data=f"prepay_{location_code}_{days}_{price}"
         )
-    
-    # Если это мульти-доступ, назад ведет к выбору типа.
-    # Если это конкретная страна, назад ведет к списку стран.
+
     back_callback = "back_to_types" if location_code == "multi" else "type_single"
-    
     builder.button(text=get_text(lang, "btn_back"), callback_data=back_callback)
     builder.adjust(1)
     return builder.as_markup()
@@ -54,22 +48,22 @@ def duration_kb(lang: str, location_code: str):
 def payment_method_kb(lang: str, balance: int, price: int, location_code: str, days: int):
     builder = InlineKeyboardBuilder()
     
-    # 1. Оплата с баланса
+    # 1. 余额支付
     if balance >= price:
-        # Хватает денег -> Кнопка активна
+        # 余额充足 → 按钮激活
         builder.button(
             text=get_text(lang, "pay_balance_btn", price=price),
             callback_data=f"confirm_balance_{location_code}_{days}_{price}"
         )
     else:
-        # Не хватает -> Кнопка ведет на пополнение (или просто неактивна визуально)
+        # 余额不足 → 跳转充值
         diff = price - balance
         builder.button(
             text=get_text(lang, "pay_balance_disabled", diff=diff),
-            callback_data=f"top_up_buy_{location_code}_{days}_{price}" # Ведем на пополнение с контекстом покупки
+            callback_data=f"top_up_buy_{location_code}_{days}_{price}"
         )
 
-    # 2. Оплата картой (всегда доступна)
+    # 2. 在线支付（始终可用）
     builder.button(
         text=get_text(lang, "pay_online_btn", price=price),
         callback_data=f"confirm_online_{location_code}_{days}_{price}"
@@ -83,7 +77,7 @@ def top_up_kb(lang: str, back_callback: str = "back_to_profile", context_suffix:
     builder = InlineKeyboardBuilder()
     amounts = [100, 200, 300, 500, 1000]
     for amount in amounts:
-        # Если есть контекст (например _buy_multi_30_199), добавляем его к callback
+        # 如有购买上下文则附加到 callback
         builder.button(text=f"{amount}₽", callback_data=f"add_funds_{amount}{context_suffix}")
     builder.button(text=get_text(lang, "btn_back"), callback_data=back_callback)
     builder.adjust(2)
@@ -91,35 +85,38 @@ def top_up_kb(lang: str, back_callback: str = "back_to_profile", context_suffix:
 
 def language_kb():
     builder = InlineKeyboardBuilder()
+    builder.button(text="🇨🇳 中文", callback_data="lang_zh")
     builder.button(text="🇬🇧 English", callback_data="lang_en")
     builder.button(text="🇷🇺 Русский", callback_data="lang_ru")
     builder.adjust(2)
     return builder.as_markup()
 
-def profile_kb(lang: str):
+def profile_kb(lang: str, has_active_sub: bool = False):
     builder = InlineKeyboardBuilder()
+    if has_active_sub:
+        builder.button(text="🔄 一键续期（+1个月）", callback_data="renew_1m")
+        builder.button(text="🔄 续期3个月", callback_data="renew_3m")
+        builder.button(text="🔄 续期12个月", callback_data="renew_1y")
+    builder.button(text="📱 扫码导入（二维码）", callback_data="show_qrcode")
     builder.button(text=get_text(lang, "promo_btn"), callback_data="activate_promo")
     builder.button(text=get_text(lang, "top_up_btn"), callback_data="top_up_menu")
-    # Добавляем метку _from_profile, чтобы знать, откуда пришел юзер
-    builder.button(text=get_text(lang, "btn_instruction"), callback_data="help_guides_from_profile")
     builder.adjust(1)
     return builder.as_markup()
 
 def help_kb(lang: str):
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text(lang, "btn_instruction"), callback_data="help_guides")
-    builder.button(text=get_text(lang, "btn_faq"), callback_data="help_faq")
-    # Ссылка на поддержку (замените username на свой)
-    builder.button(text=get_text(lang, "btn_support"), url="https://t.me/muroshark") 
+    builder.button(text="📚 配置教程", callback_data="help_guides")
+    builder.button(text="❓ 常见问题", callback_data="help_faq")
+    builder.button(text="👨‍💻 联系客服", url="https://t.me/xxedce")
     builder.adjust(1)
     return builder.as_markup()
 
 def instruction_links_kb():
     """Клавиатура только со ссылками на инструкции (без кнопки Назад)"""
     builder = InlineKeyboardBuilder()
-    builder.button(text="🍏 iOS / macOS", url="https://telegra.ph/iOS-Guide-Placeholder")
-    builder.button(text="🤖 Android", url="https://telegra.ph/Android-Guide-Placeholder")
-    builder.button(text="💻 Windows", url="https://telegra.ph/Windows-Guide-Placeholder")
+    builder.button(text="🍏 iOS / macOS", url="https://apps.apple.com/app/shadowrocket/id932747118")
+    builder.button(text="🤖 Android", url="https://github.com/2dust/v2rayNG/releases/latest")
+    builder.button(text="💻 Windows", url="https://github.com/2dust/v2rayN/releases/latest")
     builder.adjust(1)
     return builder
 
@@ -131,39 +128,39 @@ def guides_kb(lang: str, back_callback: str = "help_main"):
 
 def admin_main_kb():
     builder = InlineKeyboardBuilder()
-    builder.button(text="👥 Пользователи", callback_data="admin_users")
-    builder.button(text="✉️ Рассылка", callback_data="admin_broadcast")
-    builder.button(text="🎟 Промокоды", callback_data="admin_promos")
-    builder.button(text="📊 Статистика", callback_data="admin_stats_full")
+    builder.button(text="👥 用户管理", callback_data="admin_users")
+    builder.button(text="✉️ 群发消息", callback_data="admin_broadcast")
+    builder.button(text="🎟 优惠码", callback_data="admin_promos")
+    builder.button(text="📊 统计数据", callback_data="admin_stats_full")
     builder.adjust(2)
     return builder.as_markup()
 
 def admin_back_kb(callback_data: str = "admin_home"):
     builder = InlineKeyboardBuilder()
-    builder.button(text="🔙 Назад", callback_data=callback_data)
+    builder.button(text="🔙 返回", callback_data=callback_data)
     return builder.as_markup()
 
 def admin_user_action_kb(user_id: int):
     builder = InlineKeyboardBuilder()
-    builder.button(text="💰 +Баланс", callback_data=f"admin_add_balance_{user_id}")
-    builder.button(text="🎁 Выдать подписку", callback_data=f"admin_give_sub_{user_id}")
-    builder.button(text="🔙 Назад", callback_data="admin_users")
+    builder.button(text="💰 充值余额", callback_data=f"admin_add_balance_{user_id}")
+    builder.button(text="🎁 赠送订阅", callback_data=f"admin_give_sub_{user_id}")
+    builder.button(text="🔙 返回", callback_data="admin_users")
     builder.adjust(2)
     return builder.as_markup()
 
 def admin_promo_type_kb():
     builder = InlineKeyboardBuilder()
-    builder.button(text="💰 Деньги на баланс", callback_data="create_promo_balance")
-    builder.button(text="🗓 Дни подписки", callback_data="create_promo_days")
-    builder.button(text="🔙 Назад", callback_data="admin_promos")
+    builder.button(text="💰 余额充值", callback_data="create_promo_balance")
+    builder.button(text="🗓 天数兑换", callback_data="create_promo_days")
+    builder.button(text="🔙 返回", callback_data="admin_promos")
     builder.adjust(1)
     return builder.as_markup()
 
 def admin_promos_main_kb():
     builder = InlineKeyboardBuilder()
-    builder.button(text="➕ Создать новый", callback_data="admin_promo_create_start")
-    builder.button(text="📜 Список активных", callback_data="admin_promo_list")
-    builder.button(text="🔙 Назад", callback_data="admin_home")
+    builder.button(text="➕ 创建优惠码", callback_data="admin_promo_create_start")
+    builder.button(text="📜 查看列表", callback_data="admin_promo_list")
+    builder.button(text="🔙 返回", callback_data="admin_home")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -173,24 +170,24 @@ def admin_promos_list_kb(promos):
         # Показываем Код | Использовано/Лимит
         uses = f"{promo.current_uses}/{promo.max_uses if promo.max_uses > 0 else '∞'}"
         builder.button(text=f"🎟 {promo.code} ({uses})", callback_data=f"admin_promo_view_{promo.id}")
-    builder.button(text="🔙 Назад", callback_data="admin_promos")
+    builder.button(text="🔙 返回", callback_data="admin_promos")
     builder.adjust(1)
     return builder.as_markup()
 
 def admin_promo_view_kb(promo_id: int):
     builder = InlineKeyboardBuilder()
-    builder.button(text="🗑 Удалить", callback_data=f"admin_promo_delete_{promo_id}")
-    builder.button(text="🔙 Назад", callback_data="admin_promo_list")
+    builder.button(text="🗑 删除", callback_data=f"admin_promo_delete_{promo_id}")
+    builder.button(text="🔙 返回", callback_data="admin_promo_list")
     builder.adjust(1)
     return builder.as_markup()
 
 def promo_sub_select_kb(subs, lang: str = "ru"):
     builder = InlineKeyboardBuilder()
     for sub in subs:
-        # Маппинг кода локации (SWE, GER, MULTI) в красивое название
+        # 将位置代码映射为显示名称
         loc_code = sub.server.location.lower()
         if loc_code == "multi":
-            # Берем название из перевода, убираем лишнее в скобках для краткости
+            # 从翻译中获取名称
             loc_name = get_text(lang, "btn_multi").split("(")[0].strip()
         else:
             loc_name = get_text(lang, loc_code)

@@ -20,7 +20,7 @@ class I18nMiddleware(BaseMiddleware):
         else:
             # 2. Приоритет: Язык из настроек Telegram
             # Если язык не поддерживается, ставим 'en'
-            lang_code = tg_user.language_code if tg_user and tg_user.language_code in ["ru", "en"] else "en"
+            lang_code = tg_user.language_code if tg_user and tg_user.language_code in ["ru", "en", "zh"] else "zh"
         
         # Передаем функцию перевода в хендлер
         data["t"] = lambda text_key, **kwargs: get_text(lang_code, text_key, **kwargs)
