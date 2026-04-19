@@ -14,20 +14,20 @@ router = Router()
 
 
 async def get_usdt_rate() -> float:
-    """从币安获取实时 USDT/CNY 汇率"""
+    """获取实时 USD/CNY 汇率"""
     try:
         import aiohttp
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://api.binance.com/api/v3/ticker/price?symbol=USDTCNY",
-                timeout=aiohttp.ClientTimeout(total=3)
+                "https://open.er-api.com/v6/latest/USD",
+                timeout=aiohttp.ClientTimeout(total=5)
             ) as r:
                 if r.status == 200:
                     data = await r.json()
-                    return round(float(data["price"]), 2)
+                    return round(float(data["rates"]["CNY"]), 2)
     except Exception:
         pass
-    return 7.2  # 获取失败时用默认值
+    return 7.2
 
 @router.message(F.text.in_(["🚀 开通订阅"]))
 async def start_buy(message: Message, t, lang):
@@ -43,7 +43,7 @@ async def start_buy(message: Message, t, lang):
         "╔══════════════════╗\n"
         "      🛒 开通订阅\n"
         "╚══════════════════╝\n\n"
-        "💰 余额：<b>" + str(balance) + "¥</b>   💱 <b>1 USDT ≈ " + str(rate) + "¥</b>\n\n"
+        "💰 余额：<b>" + str(balance) + "¥</b>   💱 实时汇率 <b>1 USDT ≈ " + str(rate) + "¥</b>\n\n"
         "━━━━━━━━━━━━━━━━━━\n"
         "🌍 <b>全球通 · 全节点接入</b>\n\n"
         "📶 <b>支持协议</b>\n"
@@ -267,35 +267,57 @@ async def back_to_main_buy_menu(callback: CallbackQuery, t, lang):
     rate = await get_usdt_rate()
     text = (
         "╔══════════════════╗\n"
-        "      🛒 开通订阅\n"
+        "      🚀 开通订阅\n"
         "╚══════════════════╝\n\n"
-        "💰 余额：<b>" + str(balance) + "¥</b>   💱 <b>1 USDT ≈ " + str(rate) + "¥</b>\n\n"
+        "💰 余额：<b>" + str(balance) + "¥</b>   💱 实时汇率 <b>1 USDT ≈ " + str(rate) + "¥</b>\n\n"
         "━━━━━━━━━━━━━━━━━━\n"
-        "🌍 <b>全球通 · 全节点接入</b>\n\n"
-        "📶 <b>支持协议</b>\n"
-        "🔐 VLESS Reality  ← 推荐，最强抗封锁\n"
-        "🌐 VLESS / VMess  WS · gRPC · HTTP\n"
-        "🛡 Trojan         TCP · WS · gRPC\n"
-        "⚡️ Shadowsocks    高速稳定\n\n"
+        "📦 <b>套餐包含</b>\n\n"
+        "✅ 全球所有节点无限切换\n"
+        "✅ 同时支持 5 台设备\n"
+        "✅ 每月 200GB（时间套餐）\n"
+        "✅ 不限速 · 稳定可靠\n\n"
         "━━━━━━━━━━━━━━━━━━\n"
-        "✅ iOS · Android · Windows · Mac\n"
-        "✅ 每台设备均可用 · 不限速\n"
-        "✅ 自动切换最优线路\n\n"
+        "📶 <b>支持全部主流协议</b>\n\n"
+        "🔐 VLESS Reality   最强抗封锁\n"
+        "🌐 VLESS / VMess   WS · gRPC\n"
+        "🛡 Trojan          TCP · WS\n"
+        "⚡ Shadowsocks     高速备用\n\n"
         "━━━━━━━━━━━━━━━━━━\n"
-        "👇 <b>选择时长，立即开通</b>"
+        "👇 <b>选择套餐时长</b>"
     )
     await callback.message.edit_text(text, reply_markup=duration_kb(lang, "multi", rate=rate), parse_mode="HTML")
     await callback.answer()
     
 @router.callback_query(F.data.startswith("buy_"))
 async def select_duration(callback: CallbackQuery, t, lang):
-    # Получаем код локации (swe, ger, multi)
     location_code = callback.data.split("_")[1]
-    
-    # Показываем меню выбора срока
+    rate = await get_usdt_rate()
+    user = await get_user(callback.from_user.id)
+    balance = user.balance if user else 0
+
+    text = (
+        "╔══════════════════╗\n"
+        "      🚀 开通订阅\n"
+        "╚══════════════════╝\n\n"
+        "💰 余额：<b>" + str(balance) + "¥</b>   💱 实时汇率 <b>1 USDT ≈ " + str(rate) + "¥</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "📦 <b>套餐包含</b>\n\n"
+        "✅ 全球所有节点无限切换\n"
+        "✅ 同时支持 5 台设备\n"
+        "✅ 每月 200GB（时间套餐）\n"
+        "✅ 不限速 · 稳定可靠\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "📶 <b>支持全部主流协议</b>\n\n"
+        "🔐 VLESS Reality   最强抗封锁\n"
+        "🌐 VLESS / VMess   WS · gRPC\n"
+        "🛡 Trojan          TCP · WS\n"
+        "⚡ Shadowsocks     高速备用\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "👇 <b>选择套餐时长</b>"
+    )
     await callback.message.edit_text(
-        t("choose_duration"), 
-        reply_markup=duration_kb(lang, location_code),
+        text,
+        reply_markup=duration_kb(lang, location_code, rate=rate),
         parse_mode="HTML"
     )
 
@@ -310,16 +332,24 @@ async def show_payment_methods(callback: CallbackQuery, t, lang):
     user = await get_user(user_id)
     balance = user.balance if user else 0
     
-    # Красивое название тарифа
-    if location_code == "multi":
-        plan_name = "Universal (Multi)"
-    else:
-        plan_name = f"Single ({location_code.upper()})"
-        
-    plan_name += f" - {days} " + (t("days_short") if lang == "ru" else "days")
+    # 获取实时汇率
+    rate = await get_usdt_rate()
+    usdt = round(price / rate, 2)
+
+    # 套餐名称
+    days_label = {30: "1个月", 90: "3个月", 180: "6个月", 365: "12个月", 0: "流量包500GB"}
+    plan_name = days_label.get(days, str(days) + "天")
+
+    text = (
+        "💳 <b>选择支付方式</b>\n\n"
+        "📦 套餐：<b>" + plan_name + "</b>\n"
+        "💰 价格：<b>" + str(price) + "¥ / " + str(usdt) + " USDT</b>\n"
+        "💱 实时汇率：<b>1 USDT ≈ " + str(rate) + "¥</b>\n\n"
+        "账户余额：<b>" + str(balance) + "¥</b>"
+    )
 
     await callback.message.edit_text(
-        t("choose_payment", plan_name=plan_name, price=price, balance=balance),
+        text,
         reply_markup=payment_method_kb(lang, balance, price, location_code, days),
         parse_mode="HTML"
     )

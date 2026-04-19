@@ -80,6 +80,12 @@ async def public_stats(message: Message, t):
     now = datetime.now()
     active_subs = [s for s in subs if s.expires_at > now]
 
+    from src.handlers.user_buy import get_usdt_rate as _get_rate
+    try:
+        _rate = await _get_rate()
+    except Exception:
+        _rate = 7.2
+
     lines = [
         "╔══════════════════╗",
         "       📊 账户状态       ",
@@ -87,7 +93,7 @@ async def public_stats(message: Message, t):
         "",
         "👤 <b>" + name + "</b>",
         "🆔 ID：<code>" + str(tg_user.id) + "</code>",
-        "💰 余额：<b>" + str(balance) + " ¥</b>",
+        "💰 余额：<b>" + str(balance) + " ¥</b>   💱 实时汇率 <b>1 USDT ≈ " + str(_rate) + "¥</b>",
         "",
     ]
 

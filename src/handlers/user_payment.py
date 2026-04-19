@@ -25,19 +25,23 @@ TOP_UP_OPTIONS = [
 
 @router.callback_query(F.data == "top_up_menu")
 async def top_up_menu(callback: CallbackQuery, t, lang):
+    from src.handlers.user_buy import get_usdt_rate
     user = await get_user(callback.from_user.id)
     balance = user.balance if user else 0
+    rate = await get_usdt_rate()
+
+    def u(cny): return round(cny / rate, 1)
 
     builder = InlineKeyboardBuilder()
-    # 快捷套餐金额
     quick_options = [
-        (15,  2.1,  "🗓 1个月   15¥ = 2.1 USDT"),
-        (35,  4.9,  "📦 流量包  35¥ = 4.9 USDT"),
-        (40,  5.6,  "🗓 3个月   40¥ = 5.6 USDT"),
-        (75,  10.4, "🗓 6个月   75¥ = 10.4 USDT"),
-        (140, 19.4, "🗓 12个月 140¥ = 19.4 USDT"),
+        (15,  "🗓 1个月   15¥ = " + str(u(15)) + " USDT"),
+        (35,  "📦 流量包  35¥ = " + str(u(35)) + " USDT"),
+        (40,  "🗓 3个月   40¥ = " + str(u(40)) + " USDT"),
+        (75,  "🗓 6个月   75¥ = " + str(u(75)) + " USDT"),
+        (140, "🗓 12个月 140¥ = " + str(u(140)) + " USDT"),
     ]
-    for cny, usdt, label in quick_options:
+    for cny, label in quick_options:
+        usdt = u(cny)
         builder.button(text=label, callback_data="pay_create_" + str(cny) + "_" + str(usdt))
     builder.button(text="✏️ 自定义金额", callback_data="topup_custom")
     builder.button(text="🔙 返回", callback_data="back_to_profile")
@@ -46,7 +50,7 @@ async def top_up_menu(callback: CallbackQuery, t, lang):
     text = (
         "💰 <b>充值余额</b>\n\n"
         "当前余额：<b>" + str(balance) + "¥</b>\n\n"
-        "💡 汇率：<b>1 USDT ≈ 7.2¥</b>\n"
+        "💱 实时汇率（币安）：<b>1 USDT ≈ " + str(rate) + "¥</b>\n"
         "✅ 支持：USDT / TRX / BTC / ETH\n\n"
         "选择套餐快捷充值，或点击自定义金额"
     )

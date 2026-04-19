@@ -1,11 +1,9 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.utils.translations import get_text
 
-def buy_type_kb(lang: str = "ru"):
+def buy_type_kb(lang: str = "ru", rate: float = 7.2):
     builder = InlineKeyboardBuilder()
-    # 全球通放第一，心理上更有吸引力
     builder.button(text=get_text(lang, "btn_multi"), callback_data="buy_multi")
-    builder.button(text=get_text(lang, "btn_single"), callback_data="type_single")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -24,7 +22,7 @@ def location_kb(lang: str = "ru", prefix: str = "buy"):
 def duration_kb(lang: str, location_code: str, rate: float = 7.2):
     builder = InlineKeyboardBuilder()
 
-    def u(cny): return round(cny / rate, 1)
+    def u(cny): return round(cny / rate, 2)
 
     plans = [
         (30,  200,  15,  "🗓 1个月 — 15¥ / " + str(u(15)) + " USDT（200GB）"),
