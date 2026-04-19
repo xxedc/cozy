@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     MARZBAN_HOST: str
     MARZBAN_USERNAME: str
     MARZBAN_PASSWORD: str
+    CRYPTOMUS_MERCHANT_ID: str = ""
+    CRYPTOMUS_API_KEY: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -3,7 +3,7 @@ import sys
 from loguru import logger # Импортируем Loguru
 from src.bot import bot, dp
 from src.database.core import init_db
-from src.handlers import user_start, user_buy, user_profile, user_language, admin_tools, admin_stats, user_promo, user_help, user_referral, user_billing, user_qrcode
+from src.handlers import user_start, user_buy, user_profile, user_language, admin_tools, admin_stats, user_promo, user_help, user_referral, user_billing, user_qrcode, user_payment
 from src.middlewares.i18n import I18nMiddleware
 from src.scheduler import start_scheduler
 
@@ -47,7 +47,8 @@ async def main():
         user_help.router,
         user_referral.router,
         user_billing.router,
-        user_qrcode.router
+        user_qrcode.router,
+        user_payment.router
     )
 
     # Запуск планировщика задач (сбор статистики)

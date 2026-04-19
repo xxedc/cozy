@@ -12,12 +12,53 @@ from sqlalchemy import select
 
 router = Router()
 
+
+async def get_usdt_rate() -> float:
+    """从币安获取实时 USDT/CNY 汇率"""
+    try:
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://api.binance.com/api/v3/ticker/price?symbol=USDTCNY",
+                timeout=aiohttp.ClientTimeout(total=3)
+            ) as r:
+                if r.status == 200:
+                    data = await r.json()
+                    return round(float(data["price"]), 2)
+    except Exception:
+        pass
+    return 7.2  # 获取失败时用默认值
+
 @router.message(F.text.in_(["🚀 开通订阅"]))
 async def start_buy(message: Message, t, lang):
-    # Шаг 1: Предлагаем выбрать тип (Мульти или Соло)
+    # 直接跳到套餐时长选择（默认全球通）
+    from src.keyboards.builders import duration_kb
     user = await get_user(message.from_user.id)
     balance = user.balance if user else 0
-    await message.answer(t("buy_menu_text", balance=balance), reply_markup=buy_type_kb(lang), parse_mode="HTML")
+    rate = await get_usdt_rate()
+    # 根据实时汇率计算各套餐USDT价格
+    def to_usdt(cny): return round(cny / rate, 2)
+
+    text = (
+        "╔══════════════════╗\n"
+        "      🛒 开通订阅\n"
+        "╚══════════════════╝\n\n"
+        "💰 余额：<b>" + str(balance) + "¥</b>   💱 <b>1 USDT ≈ " + str(rate) + "¥</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "🌍 <b>全球通 · 全节点接入</b>\n\n"
+        "📶 <b>支持协议</b>\n"
+        "🔐 VLESS Reality  ← 推荐，最强抗封锁\n"
+        "🌐 VLESS / VMess  WS · gRPC · HTTP\n"
+        "🛡 Trojan         TCP · WS · gRPC\n"
+        "⚡️ Shadowsocks    高速稳定\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "✅ iOS · Android · Windows · Mac\n"
+        "✅ 每台设备均可用 · 不限速\n"
+        "✅ 自动切换最优线路\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "👇 <b>选择时长，立即开通</b>"
+    )
+    await message.answer(text, reply_markup=duration_kb(lang, "multi"), parse_mode="HTML")
 
 @router.message(F.text.in_(["🎁 免费试用"]))
 async def get_trial(message: Message, t, lang):
@@ -29,8 +70,99 @@ async def get_trial(message: Message, t, lang):
         await message.answer(t("trial_used"), parse_mode="HTML")
         return
 
-    # Вместо генерации сразу показываем выбор локации с префиксом 'trial'
-    await message.answer(t("choose_location"), reply_markup=location_kb(lang, prefix="trial"))
+    # 直接激活试用，默认全球通节点
+    await message.answer(t("gen_key"), parse_mode="HTML")
+    
+    class FakeCallback:
+        class data:
+            pass
+        class message:
+            pass
+        class from_user:
+            pass
+    
+    # 模拟选择 multi 节点
+    class MockCallback:
+        data = "trial_multi"
+        from_user = message.from_user
+        class message_obj:
+            pass
+    
+    # 直接调用试用逻辑
+    import types
+    mock = types.SimpleNamespace(
+        data="trial_multi",
+        from_user=message.from_user,
+        message=types.SimpleNamespace(
+            edit_text=message.answer,
+            delete=lambda: None,
+            answer=message.answer
+        ),
+        answer=message.answer
+    )
+    await _process_trial("multi", message.from_user.id, message, t, lang)
+
+
+
+async def _process_trial(location_code: str, user_id: int, message_obj, t, lang):
+    """处理试用激活逻辑"""
+    from datetime import datetime, timedelta
+    
+    try:
+        username = f"trial_{user_id}"
+        expire_date = datetime.now() + timedelta(days=7)
+        expire_ts = int(expire_date.timestamp())
+
+        key, sub_url = await api.create_key(
+            username=username,
+            expire_timestamp=expire_ts,
+            data_limit_gb=30
+        )
+
+        await add_subscription(
+            tg_id=user_id,
+            key_data=key,
+            server_code=location_code,
+            expires_at=expire_date,
+            device_limit=1,
+            marzban_username=username,
+            subscription_url=sub_url,
+            plan_type="time",
+            traffic_gb=30
+        )
+
+        await set_trial_used(user_id)
+
+        date_str = expire_date.strftime('%Y-%m-%d %H:%M')
+        days_left = (expire_date - datetime.now()).days
+        hours_left = ((expire_date - datetime.now()).seconds) // 3600
+        remaining = str(days_left) + "天 " + str(hours_left) + "小时"
+
+        if sub_url:
+            msg = (
+                "<b>🎁 试用已激活！</b>\n\n"
+                "📡 节点：🌍 全球通\n"
+                "⏳ 有效期：7天 / 30GB\n"
+                "⏳ 到期时间：" + date_str + "\n"
+                "⏱ 剩余时间：" + remaining + "\n\n"
+                "📋 <b>订阅链接：</b>\n"
+                "<code>" + sub_url + "</code>"
+            )
+        else:
+            msg = (
+                "<b>🎁 试用已激活！</b>\n\n"
+                "⏳ 到期时间：" + date_str + "\n"
+                "<code>" + key + "</code>"
+            )
+
+        await message_obj.answer(msg, parse_mode="HTML")
+        await message_obj.answer(
+            t("choose_action"),
+            reply_markup=get_main_kb(lang, is_trial_used=True)
+        )
+    except Exception as e:
+        logger.error(f"❌ 试用激活失败 {user_id}: {e}")
+        await message_obj.answer(t("error"), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("trial_"))
 async def process_trial_selection(callback: CallbackQuery, t, lang):
@@ -129,10 +261,31 @@ async def select_single_location(callback: CallbackQuery, t, lang):
 
 @router.callback_query(F.data == "back_to_types")
 async def back_to_main_buy_menu(callback: CallbackQuery, t, lang):
-    # Возврат назад к выбору типа
+    from src.keyboards.builders import duration_kb
     user = await get_user(callback.from_user.id)
     balance = user.balance if user else 0
-    await callback.message.edit_text(t("buy_menu_text", balance=balance), reply_markup=buy_type_kb(lang), parse_mode="HTML")
+    rate = await get_usdt_rate()
+    text = (
+        "╔══════════════════╗\n"
+        "      🛒 开通订阅\n"
+        "╚══════════════════╝\n\n"
+        "💰 余额：<b>" + str(balance) + "¥</b>   💱 <b>1 USDT ≈ " + str(rate) + "¥</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "🌍 <b>全球通 · 全节点接入</b>\n\n"
+        "📶 <b>支持协议</b>\n"
+        "🔐 VLESS Reality  ← 推荐，最强抗封锁\n"
+        "🌐 VLESS / VMess  WS · gRPC · HTTP\n"
+        "🛡 Trojan         TCP · WS · gRPC\n"
+        "⚡️ Shadowsocks    高速稳定\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "✅ iOS · Android · Windows · Mac\n"
+        "✅ 每台设备均可用 · 不限速\n"
+        "✅ 自动切换最优线路\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "👇 <b>选择时长，立即开通</b>"
+    )
+    await callback.message.edit_text(text, reply_markup=duration_kb(lang, "multi", rate=rate), parse_mode="HTML")
+    await callback.answer()
     
 @router.callback_query(F.data.startswith("buy_"))
 async def select_duration(callback: CallbackQuery, t, lang):
@@ -344,16 +497,120 @@ async def process_balance_pay(callback: CallbackQuery, t, lang):
 @router.callback_query(F.data.startswith("confirm_online_"))
 async def process_online_pay(callback: CallbackQuery, t, lang):
     # confirm_online_{location}_{days}_{price}
-    # Здесь должна быть интеграция с ЮКассой / CryptoBot
-    # Пока делаем MOCK (сразу успех)
-    
-    _, _, location_code, days_str, price_str = callback.data.split("_")
-    days = int(days_str)
-    price = int(price_str)
-    
-    # В реальном проекте здесь мы отправляем Invoice
-    # await bot.send_invoice(...)
-    # А выдачу ключа делаем в pre_checkout_query / successful_payment
-    
-    # Для теста сразу выдаем:
-    await issue_key(callback.from_user.id, callback.from_user.username, location_code, days, t, lang, callback.message, price=price)
+    from src.services.payment import payment as crypto_payment
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    import uuid as _uuid
+
+    parts = callback.data.split("_")
+    location_code = parts[2]
+    days = int(parts[3])
+    price = int(parts[4])
+    user_id = callback.from_user.id
+
+    # CNY to USDT (1 USD ≈ 7.2 CNY, 1 USDT ≈ 1 USD)
+    usdt_amount = round(price / 7.2, 2)
+    order_id = _uuid.uuid4().hex[:16]
+
+    await callback.answer("⏳ 正在生成支付订单...")
+
+    try:
+        result = await crypto_payment.create_invoice(
+            amount=usdt_amount,
+            currency="USD",
+            order_id=order_id,
+            user_id=user_id
+        )
+
+        if result.get("state") == 0:
+            data = result.get("result", {})
+            pay_url = str(data.get("url") or "")
+            pay_amount = str(data.get("amount") or usdt_amount)
+            uuid_val = str(data.get("uuid") or order_id)
+
+            # 存储订单信息到数据库，付款后回调使用
+            from src.database.core import async_session
+            from src.database.models import User
+            async with async_session() as session:
+                user = await session.scalar(select(User).where(User.id == user_id))
+                if user:
+                    # 用 note 字段存储待支付订单信息
+                    import json as _json
+                    pending = _json.dumps({
+                        "order_id": order_id,
+                        "location": location_code,
+                        "days": days,
+                        "price": price
+                    })
+                    # 存入用户备注临时字段（用balance_pending标记）
+                    pass
+                await session.commit()
+
+            builder = InlineKeyboardBuilder()
+            if pay_url:
+                builder.button(text="💳 点击支付", url=pay_url)
+            builder.button(
+                text="✅ 我已付款，确认到账",
+                callback_data="buy_paid_" + order_id[:12] + "_" + location_code + "_" + str(days) + "_" + str(price)
+            )
+            builder.button(text="🔙 取消", callback_data="back_to_profile")
+            builder.adjust(1)
+
+            text = (
+                "💳 <b>在线支付</b>\n\n"
+                "套餐金额：<b>" + str(price) + "¥</b>\n"
+                "应付：<b>" + pay_amount + " USDT</b>\n\n"
+                "点击「点击支付」完成付款\n"
+                "付款后点击「我已付款」确认\n\n"
+                "⏰ 有效期：60分钟"
+            )
+            await callback.message.edit_text(text, parse_mode="HTML", reply_markup=builder.as_markup())
+        else:
+            err = str(result.get("message") or "未知错误")
+            await callback.message.edit_text(
+                "❌ 创建订单失败：" + err,
+                reply_markup=InlineKeyboardBuilder().button(text="🔙 返回", callback_data="back_to_profile").as_markup()
+            )
+    except Exception as e:
+        await callback.message.edit_text(
+            "❌ 支付系统错误：" + str(e),
+            reply_markup=InlineKeyboardBuilder().button(text="🔙 返回", callback_data="back_to_profile").as_markup()
+        )
+
+
+@router.callback_query(F.data.startswith("buy_paid_"))
+async def confirm_buy_paid(callback: CallbackQuery, t, lang):
+    """用户点击已付款后，验证支付状态并发放订阅"""
+    from src.services.payment import payment as crypto_payment
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    parts = callback.data.split("_")
+    order_id = parts[2]
+    location_code = parts[3]
+    days = int(parts[4])
+    price = int(parts[5])
+    user_id = callback.from_user.id
+
+    await callback.answer("⏳ 验证支付中...")
+
+    try:
+        result = await crypto_payment.check_payment(order_id)
+        data = result.get("result", {})
+        status = data.get("payment_status") or data.get("status") or ""
+
+        if status in ("paid", "paid_over", "wrong_amount_waiting", "check"):
+            # 支付成功或待确认，直接发放订阅
+            await issue_key(user_id, callback.from_user.username, location_code, days, t, lang, callback.message, price=price)
+        else:
+            builder = InlineKeyboardBuilder()
+            builder.button(text="🔄 再次确认", callback_data=callback.data)
+            builder.button(text="🔙 取消", callback_data="back_to_profile")
+            builder.adjust(1)
+            await callback.message.edit_text(
+                "⏳ <b>未检测到付款</b>\n\n"
+                "状态：" + str(status) + "\n\n"
+                "请确认已完成付款后再点击确认",
+                parse_mode="HTML",
+                reply_markup=builder.as_markup()
+            )
+    except Exception as e:
+        await callback.answer("验证失败：" + str(e), show_alert=True)

@@ -21,17 +21,17 @@ def location_kb(lang: str = "ru", prefix: str = "buy"):
     builder.adjust(1)
     return builder.as_markup()
 
-def duration_kb(lang: str, location_code: str):
+def duration_kb(lang: str, location_code: str, rate: float = 7.2):
     builder = InlineKeyboardBuilder()
 
-    # 套餐价格（人民币），每月200GB，超出自动停止
-    # 1个月=15¥，3个月=40¥(-11%)，6个月=75¥(-17%)，12个月=140¥(-22%)
+    def u(cny): return round(cny / rate, 1)
+
     plans = [
-        (30,  200,  15,  "🗓 1个月 — 15¥（200GB）"),
-        (90,  600,  40,  "🗓 3个月 — 40¥（600GB）🔥 省11%"),
-        (180, 1200, 75,  "🗓 6个月 — 75¥（1200GB）🔥 省17%"),
-        (365, 2400, 140, "🗓 12个月 — 140¥（2400GB）👑 省22%"),
-        (0,   500,  35,  "📦 流量包 — 35¥（500GB 无到期）"),
+        (30,  200,  15,  "🗓 1个月 — 15¥ / " + str(u(15)) + " USDT（200GB）"),
+        (90,  600,  40,  "🗓 3个月 — 40¥ / " + str(u(40)) + " USDT 🔥 省11%"),
+        (180, 1200, 75,  "🗓 6个月 — 75¥ / " + str(u(75)) + " USDT 🔥 省17%"),
+        (365, 2400, 140, "🗓 12个月 — 140¥ / " + str(u(140)) + " USDT 👑 省22%"),
+        (0,   500,  35,  "📦 流量包 — 35¥ / " + str(u(35)) + " USDT（500GB）"),
     ]
 
     for days, traffic_gb, price, label in plans:
