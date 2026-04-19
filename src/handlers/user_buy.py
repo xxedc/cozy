@@ -30,7 +30,8 @@ async def get_usdt_rate() -> float:
     return 7.2
 
 @router.message(F.text.in_(["🚀 开通订阅"]))
-async def start_buy(message: Message, t, lang):
+async def start_buy(message: Message, t, lang, state=None):
+    if state: await state.clear()
     # 直接跳到套餐时长选择（默认全球通）
     from src.keyboards.builders import duration_kb
     user = await get_user(message.from_user.id)

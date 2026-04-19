@@ -53,41 +53,41 @@ async def get_profile_text(user_id: int, t, lang: str):
                     sub_url = s.subscription_url
                     break
 
-            text += "━━━━━━━━━━━━━━━━━━\n"
-            text += "📡 <b>节点：</b>" + node_name + "\n"
-            text += "📱 <b>在线设备：</b>" + str(online_count) + " / " + limit_str + "\n"
-            text += "\n"
+            text += (
+                "━━━━━━━━━━━━\n"
+                "🚀 " + node_name + "\n"
+                "📊 状态：🟢 正常\n"
+                "📱 设备：" + str(online_count) + " / " + limit_str + "\n\n"
+            )
 
-            # 时间套餐信息
             if best_time:
                 days_left = (best_time.expires_at - now).days
                 if days_left >= 3640:
-                    text += "🗓 <b>时间套餐：</b>永久有效\n"
+                    text += "⏳ 到期：永久有效\n⏱ 剩余：永久\n"
                 else:
-                    text += "🗓 <b>时间套餐到期：</b>" + best_time.expires_at.strftime("%Y-%m-%d %H:%M:%S") + "\n"
-                    text += "⏱ <b>剩余天数：</b>" + str(days_left) + " 天\n"
-                text += "📶 <b>月度流量：</b>200 GB（每30天重置）\n"
+                    text += "⏳ 到期：" + best_time.expires_at.strftime("%Y-%m-%d") + "\n"
+                    text += "⏱ 剩余：" + str(days_left) + " 天\n"
             else:
-                text += "🗓 <b>时间套餐：</b>未购买\n"
+                text += "⏳ 到期：无时间套餐\n"
 
-            text += "\n"
+            text += "\n━━━━━━━━━━━━\n"
+            if best_time:
+                text += "📡 流量：200 GB / 月\n"
+            text += "📉 已用：0.0 GB\n"
 
-            # 流量包信息
             if best_traffic:
                 tgb = getattr(best_traffic, 'traffic_gb', 0) or 0
-                text += "📦 <b>流量包：</b>" + str(tgb) + " GB（永久有效）\n"
+                text += "🎁 流量包：" + str(tgb) + " GB\n"
             else:
-                text += "📦 <b>流量包：</b>未购买\n"
+                text += "🎁 流量包：无\n"
 
-            text += "\n"
-
-            # 订阅链接
             if sub_url:
-                text += "━━━━━━━━━━━━━━━━━━\n"
-                text += "📋 <b>订阅链接（支持全协议）：</b>\n"
+                text += "\n━━━━━━━━━━━━\n"
+                text += "🔗 订阅：\n"
                 text += "<code>" + sub_url + "</code>\n"
-            text += "\n"
-    
+
+            text += "\n━━━━━━━━━━━━\n"
+
     has_active = any(s.expires_at > now and getattr(s,'plan_type','time') != 'traffic' for s in subs)
     return text, profile_kb(lang, has_active_sub=has_active)
 

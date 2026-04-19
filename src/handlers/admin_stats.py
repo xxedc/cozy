@@ -88,13 +88,16 @@ async def public_stats(message: Message, t):
 
     lines = [
         "╔══════════════════╗",
-        "       📊 账户状态       ",
+        "        👤 用户中心",
         "╚══════════════════╝",
         "",
-        "👤 <b>" + name + "</b>",
-        "🆔 ID：<code>" + str(tg_user.id) + "</code>",
-        "💰 余额：<b>" + str(balance) + " ¥</b>   💱 实时汇率 <b>1 USDT ≈ " + str(_rate) + "¥</b>",
+        "👤 用户：<b>" + name + "</b>",
+        "🆔 UID：<code>" + str(tg_user.id) + "</code>",
         "",
+        "💰 账户余额：<b>" + str(balance) + " ¥</b>",
+        "💱 汇率参考：<b>1 USDT ≈ " + str(_rate) + " ¥</b>",
+        "",
+        "━━━━━━━━━━━━━━━━━━",
     ]
 
     if not active_subs:
@@ -154,44 +157,44 @@ async def public_stats(message: Message, t):
         has_valid = bool(best_time or best_traffic)
         status_str = "🟢 有效" if has_valid else "🔴 已过期（请及时续费）"
 
+        # 套餐信息
         lines += [
-            "━━━━━━━━━━━━━━━━━━",
-            "🚀 <b>套餐信息</b>",
-            "",
+            "🚀 <b>当前套餐</b>",
             "🌍 " + node,
             "",
-            "📌 套餐状态：" + status_str,
+            "📊 状态：" + status_str,
         ]
 
         if best_time:
             t_days = (best_time.expires_at - now).days
             if t_days >= 3640:
-                lines += ["⏳ 到期时间：永久有效", "⏱ 剩余时间：永久"]
+                lines += ["⏳ 到期：永久有效", "⏱ 剩余：永久"]
             else:
                 lines += [
-                    "⏳ 到期时间：" + best_time.expires_at.strftime("%Y-%m-%d %H:%M"),
-                    "⏱ 剩余时间：" + str(t_days) + " 天",
+                    "⏳ 到期：" + best_time.expires_at.strftime("%Y-%m-%d %H:%M"),
+                    "⏱ 剩余：" + str(t_days) + " 天",
                 ]
         else:
-            lines.append("⏳ 到期时间：无时间套餐")
+            lines.append("⏳ 到期：无时间套餐")
 
         lines += [
             "",
             "━━━━━━━━━━━━━━━━━━",
-            "📊 <b>流量使用</b>",
+            "📡 <b>流量统计</b>",
             "",
         ]
 
         if best_time:
-            lines.append("📅 月配额：200 GB / 月（每30天重置）")
-        lines.append("📉 已使用：" + str(used_gb) + " GB")
+            lines.append("📦 月流量：200 GB")
+        lines.append("📉 已用流量：" + str(used_gb) + " GB")
+        lines.append("🔄 重置周期：30 天")
 
         if traffic_pack_gb > 0:
             remain_pack = round(max(0, traffic_pack_gb - used_gb), 2)
             lines += [
                 "",
                 "📦 流量包：" + str(traffic_pack_gb) + " GB（用完即止）",
-                "📊 剩余流量：" + str(remain_pack) + " GB",
+                "📊 剩余：" + str(remain_pack) + " GB",
             ]
 
         # 订阅链接
@@ -201,24 +204,26 @@ async def public_stats(message: Message, t):
                 sub_url = s.subscription_url
                 break
 
+        lines += ["", "━━━━━━━━━━━━━━━━━━", "🔗 <b>订阅管理</b>", ""]
         if sub_url:
             lines += [
-                "",
-                "━━━━━━━━━━━━━━━━━━",
-                "🔗 <b>订阅信息（全协议支持）</b>",
-                "",
-                "👇 点击复制订阅链接",
+                "📥 一键订阅：",
                 "<code>" + sub_url + "</code>",
+                "",
+                "📌 支持：V2Ray / Clash / Shadowrocket / Surge",
             ]
+        else:
+            lines.append("💡 购买套餐后获得订阅链接")
 
         lines += [
             "",
             "━━━━━━━━━━━━━━━━━━",
-            "⚠️ <b>使用提示</b>",
+            "⚙️ <b>使用建议</b>",
             "",
-            "• 建议每日自动更新订阅",
-            "• 若连接失败，请切换节点或重启客户端",
-            "• 高峰时段建议切换低延迟节点",
+            "• 建议开启「自动更新订阅」",
+            "• 连接异常 → 切换节点",
+            "• 高峰期优先选择低延迟线路",
+            "━━━━━━━━━━━━━━━━━━",
         ]
 
     await message.answer("\n".join(lines), parse_mode="HTML")

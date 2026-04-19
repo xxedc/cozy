@@ -8,7 +8,9 @@ from src.database.requests import add_user, get_user, get_user_subscriptions
 router = Router()
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, t, lang):
+async def cmd_start(message: Message, t, lang, state=None):
+    if state:
+        await state.clear()
     user_id = message.from_user.id
     await add_user(user_id, message.from_user.username, lang)
 

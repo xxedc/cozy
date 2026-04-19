@@ -35,10 +35,10 @@ async def top_up_menu(callback: CallbackQuery, t, lang):
     builder = InlineKeyboardBuilder()
     quick_options = [
         (15,  "🗓 1个月   15¥ = " + str(u(15)) + " USDT"),
-        (35,  "📦 流量包  35¥ = " + str(u(35)) + " USDT"),
         (40,  "🗓 3个月   40¥ = " + str(u(40)) + " USDT"),
         (75,  "🗓 6个月   75¥ = " + str(u(75)) + " USDT"),
         (140, "🗓 12个月 140¥ = " + str(u(140)) + " USDT"),
+        (35,  "📦 流量包  35¥ = " + str(u(35)) + " USDT"),
     ]
     for cny, label in quick_options:
         usdt = u(cny)
@@ -48,11 +48,15 @@ async def top_up_menu(callback: CallbackQuery, t, lang):
     builder.adjust(1)
 
     text = (
-        "💰 <b>充值余额</b>\n\n"
-        "当前余额：<b>" + str(balance) + "¥</b>\n\n"
-        "💱 实时汇率（币安）：<b>1 USDT ≈ " + str(rate) + "¥</b>\n"
-        "✅ 支持：USDT / TRX / BTC / ETH\n\n"
-        "选择套餐快捷充值，或点击自定义金额"
+        "╔══════════════╗\n"
+        "      余额充值\n"
+        "╚══════════════╝\n\n"
+        "当前余额：<b>" + str(balance) + " ¥</b>\n"
+        "实时汇率（Binance）：<b>1 USDT ≈ " + str(rate) + " ¥</b>\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "支持：USDT（TRC20） / TRX / BTC / ETH\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "可选择套餐充值或自定义金额"
     )
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=builder.as_markup())
     await callback.answer()
@@ -64,12 +68,14 @@ async def topup_custom(callback: CallbackQuery, t, lang):
     builder.button(text="🔙 返回", callback_data="top_up_menu")
     builder.adjust(1)
     await callback.message.edit_text(
-        "✏️ <b>自定义充值金额</b>\n\n"
-        "💡 汇率：<b>1 USDT ≈ 7.2¥</b>\n\n"
-        "请直接输入要充值的人民币金额\n"
-        "例如：输入 <b>100</b> 即充值100¥ = 13.9 USDT\n\n"
-        "最低10¥，最高10000¥\n\n"
-        "👇 <b>直接发送数字即可</b>",
+        "✏️ <b>自定义充值</b>\n\n"
+        "汇率：<b>1 USDT ≈ 7.2 ¥</b>\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "请输入充值金额（¥）\n"
+        "例如：100 = 13.9 USDT\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "范围：10 ¥ - 10000 ¥\n\n"
+        "👇 <b>发送数字即可</b>",
         parse_mode="HTML",
         reply_markup=builder.as_markup()
     )

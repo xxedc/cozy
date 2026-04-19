@@ -30,15 +30,18 @@ async def process_promo_code(message: Message, state: FSMContext, t, lang):
     promo = await get_promo(code)
     
     if not promo:
+        await state.clear()
         await message.answer(t("promo_not_found"), parse_mode="HTML")
         return
 
     # Проверки валидности ДО выбора подписки
     if promo.expires_at and promo.expires_at < datetime.now():
+        await state.clear()
         await message.answer(t("promo_expired"), parse_mode="HTML")
         return
         
     if await is_promo_used_by_user(user_id, promo.id):
+        await state.clear()
         await message.answer(t("promo_used"), parse_mode="HTML")
         return
 

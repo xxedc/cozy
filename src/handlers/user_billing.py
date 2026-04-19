@@ -10,20 +10,28 @@ async def build_billing_text(user_id: int) -> str:
     user = await get_user(user_id)
     balance = user.balance if user else 0
 
+    text = "📄 <b>账单记录</b>（最近15条）\n"
+    text += "💰 余额：<b>" + str(balance) + " ¥</b>\n\n"
+    text += "━━━━━━━━━━━━\n\n"
+
     if not records:
-        text = "📄 <b>账单记录</b>\n\n暂无消费记录。"
+        text += "暂无消费记录"
     else:
-        text = "📄 <b>账单记录</b>（最近15条）\n\n"
-        text += "💰 当前余额：<b>" + str(balance) + "¥</b>\n"
-        text += "━━━━━━━━━━━━━━━━\n"
         for r in records:
             amount = r.amount or 0
             desc = r.description or "操作"
             date = r.created_at.strftime("%m-%d %H:%M") if r.created_at else ""
-            sign = "➕" if amount > 0 else "➖"
-            amount_str = ("+" if amount > 0 else "") + str(amount) + "¥"
-            text += sign + " <b>" + amount_str + "</b>  " + desc + "\n"
-            text += "    <i>" + date + "</i>\n"
+
+            if amount > 0:
+                icon = "🟢"
+                amount_str = "+" + str(amount) + " ¥"
+            else:
+                icon = "🔻"
+                amount_str = str(amount) + " ¥"
+
+            text += icon + " <b>" + amount_str + "</b>   " + desc + "\n"
+            text += "   🕒 " + date + "\n\n"
+
     return text
 
 @router.message(F.text == "📄 账单记录")

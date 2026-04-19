@@ -3,8 +3,9 @@ import sys
 from loguru import logger # Импортируем Loguru
 from src.bot import bot, dp
 from src.database.core import init_db
-from src.handlers import user_start, user_buy, user_profile, user_language, admin_tools, admin_stats, user_promo, user_help, user_referral, user_billing, user_qrcode, user_payment
+from src.handlers import user_start, user_buy, user_profile, user_language, admin_tools, admin_stats, user_promo, user_help, user_referral, user_billing, user_qrcode, user_payment, user_signin
 from src.middlewares.i18n import I18nMiddleware
+from src.middlewares.clear_state import ClearStateMiddleware
 from src.scheduler import start_scheduler
 
 async def main():
@@ -33,6 +34,7 @@ async def main():
 
     # Подключаем Middleware
     dp.message.middleware(I18nMiddleware())
+    dp.message.middleware(ClearStateMiddleware())
     dp.callback_query.middleware(I18nMiddleware())
 
     # 3. Регистрация роутеров
@@ -48,7 +50,8 @@ async def main():
         user_referral.router,
         user_billing.router,
         user_qrcode.router,
-        user_payment.router
+        user_payment.router,
+        user_signin.router
     )
 
     # Запуск планировщика задач (сбор статистики)

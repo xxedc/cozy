@@ -3,7 +3,7 @@
     {
       "0": 8258898191,
       "1": "gitxxd",
-      "2": 0,
+      "2": 8,
       "3": "2026-04-18 02:25:22.382058",
       "4": "zh",
       "5": 1,
@@ -44,7 +44,7 @@
       "5": null,
       "6": "vless://34ab5c03-5801-43ac-ab88-242b3d01779a@167.179.86.97:8443?security=reality&type=tcp&headerType=&flow=xtls-rprx-vision&path=&host=&sni=www.microsoft.com&fp=chrome&pbk=HaREIyGyfxA3wYy_V56MZCAt3EhvWhpzHDybCjt8aUw&sid=abcd1234#%F0%9F%9A%80%20Marz%20%28user_8258898191%29%20%5BVLESS%20-%20tcp%5D",
       "7": "active",
-      "8": "2030-11-15 02:25:32.378178",
+      "8": "2030-11-22 02:25:32",
       "9": 0,
       "10": 5,
       "11": "https://s.tlte.top/sub/dXNlcl84MjU4ODk4MTkxLDE3NzY1NjM1OTI72kNDslJpS",
@@ -60,7 +60,7 @@
       "5": null,
       "6": "vless://8d61d52a-a47c-4511-a08a-b143741e4a7f@167.179.86.97:8443?security=reality&type=tcp&headerType=&flow=xtls-rprx-vision&path=&host=&sni=www.microsoft.com&fp=chrome&pbk=HaREIyGyfxA3wYy_V56MZCAt3EhvWhpzHDybCjt8aUw&sid=abcd1234#%F0%9F%9A%80%20Marz%20%28trial_8171456258%29%20%5BVLESS%20-%20tcp%5D",
       "7": null,
-      "8": "2026-04-25 02:31:23.444372",
+      "8": "2026-05-02 02:31:23",
       "9": 0,
       "10": 1,
       "11": "https://s.tlte.top/sub/dHJpYWxfODE3MTQ1NjI1OCwxNzc2NDc5NDg1VuXx1Dt9lG",
@@ -82,6 +82,38 @@
       "11": "https://s.tlte.top/sub/dHJpYWxfODA3ODQ2ODQ0NywxNzc2NDg4ODY4CIfE6CEouT",
       "12": "time",
       "13": 30
+    },
+    {
+      "0": 4,
+      "1": 8171456258,
+      "2": 1,
+      "3": null,
+      "4": "user_8171456258",
+      "5": null,
+      "6": "",
+      "7": null,
+      "8": "2036-04-16 05:22:18",
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": "traffic",
+      "13": 25
+    },
+    {
+      "0": 5,
+      "1": 8258898191,
+      "2": 1,
+      "3": null,
+      "4": "user_8258898191",
+      "5": null,
+      "6": "",
+      "7": null,
+      "8": "2036-04-16 05:23:09",
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": "traffic",
+      "13": 50
     }
   ],
   "transactions": [
@@ -197,5 +229,51 @@
       "8": 1
     }
   ],
-  "promo_usages": []
+  "promo_usages": [],
+  "sign_in_records": [
+    {
+      "0": 1,
+      "1": 8171456258,
+      "2": "2026-04-19",
+      "3": 1,
+      "4": 5.0,
+      "5": 0,
+      "6": "2026-04-19 05:22:18"
+    },
+    {
+      "0": 7,
+      "1": 8258898191,
+      "2": "2026-04-19",
+      "3": 1,
+      "4": 5.0,
+      "5": 0,
+      "6": "2026-04-19 06:24:18"
+    }
+  ],
+  "user_sign_stats": [
+    {
+      "0": 8171456258,
+      "1": 1,
+      "2": 1,
+      "3": 5.0,
+      "4": "2026-04-01",
+      "5": "2026-04-19",
+      "6": 1,
+      "7": 1,
+      "8": 0,
+      "9": null
+    },
+    {
+      "0": 8258898191,
+      "1": 1,
+      "2": 1,
+      "3": 30.0,
+      "4": "2026-04-01",
+      "5": "2026-04-19",
+      "6": 1,
+      "7": 1,
+      "8": 1,
+      "9": "2026-04-19"
+    }
+  ]
 }

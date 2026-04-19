@@ -10,10 +10,15 @@ router = Router()
 async def help_menu(message: Message, t, lang):
     text = (
         "🆘 <b>帮助中心</b>\n\n"
-        "请选择以下分类获取帮助：\n\n"
-        "📚 <b>配置教程</b> — 客户端下载和配置\n"
-        "❓ <b>常见问题</b> — 速度/设备/续期问题\n"
-        "👨‍💻 <b>联系客服</b> — 人工在线支持"
+        "━━━━━━━━━━━━\n\n"
+        "📚 <b>配置教程</b>\n"
+        "下载与配置指南\n\n"
+        "❓ <b>常见问题</b>\n"
+        "连接 / 设备 / 续期\n\n"
+        "👨‍💻 <b>联系客服</b>\n"
+        "在线人工支持\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "请选择一个分类"
     )
     await message.answer(text, reply_markup=help_kb(lang), parse_mode="HTML")
 
@@ -30,11 +35,26 @@ async def show_faq(callback: CallbackQuery, t, lang):
     builder = InlineKeyboardBuilder()
     builder.button(text=t("btn_back"), callback_data="help_main")
     
-    await callback.message.edit_text(
-        t("faq_text"),
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
+    faq_text = (
+        "❓ <b>常见问题</b>\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "【连接速度】\n"
+        "受网络环境影响，速度可能波动\n"
+        "建议切换节点或选择低延迟线路\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "【设备数量】\n"
+        "当前套餐最多支持 5 台设备同时在线\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "【订阅续期】\n"
+        "订阅到期后将无法使用服务\n"
+        "可通过购买套餐或使用优惠码续期\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "【使用说明】\n"
+        "本服务为网络加速工具\n"
+        "请遵守当地法律法规合理使用\n\n"
+        "━━━━━━━━━━━━"
     )
+    await callback.message.edit_text(faq_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("help_guides"))
 async def show_guides(callback: CallbackQuery, t, lang):
@@ -51,13 +71,25 @@ async def show_guides(callback: CallbackQuery, t, lang):
     builder.adjust(1)
 
     text = (
-        "<b>📚 配置教程</b>\n\n"
-        "选择您的设备下载客户端：\n\n"
-        "🍏 <b>iOS / macOS</b>：Shadowrocket / V2Box\n"
-        "🤖 <b>Android</b>：v2rayNG / Clash\n"
-        "💻 <b>Windows</b>：v2rayN / Clash\n\n"
-        "下载后在客户端中选择<b>添加订阅</b>，\n"
-        "粘贴您的订阅链接即可使用。\n\n"
-        "💡 订阅链接在 <b>📦 我的订阅</b> 中获取"
+        "📚 <b>配置教程</b>\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "选择设备并安装客户端\n\n"
+        "🍏 <b>iOS / macOS</b>\n"
+        "Shadowrocket / V2Box / Stash / ClashX\n\n"
+        "🤖 <b>Android</b>\n"
+        "v2rayNG / Clash / Clash Meta / SagerNet\n\n"
+        "💻 <b>Windows</b>\n"
+        "v2rayN / Clash Verge / Nekoray\n\n"
+        "🐧 <b>Linux</b>\n"
+        "Clash / Clash Verge / v2ray-core\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "📥 <b>使用方法</b>\n\n"
+        "1. 打开客户端\n"
+        "2. 添加订阅\n"
+        "3. 粘贴订阅链接\n"
+        "4. 更新并连接\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "💡 推荐新手：Clash / v2rayNG / Shadowrocket\n"
+        "📌 订阅链接在「我的订阅」中获取"
     )
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")

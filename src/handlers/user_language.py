@@ -16,13 +16,18 @@ async def cmd_language(message: Message, t):
 async def process_language_selection(callback: CallbackQuery):
     lang_code = callback.data.split("_")[1]
     user_id = callback.from_user.id
-    
-    # Обновляем язык в БД
+
     await update_user_language(user_id, lang_code)
-    
-    # Получаем текст ответа на НОВОМ языке
+
+    # 检查是否已使用试用
+    from src.database.requests import get_user, get_user_subscriptions
+    from datetime import datetime
+    user = await get_user(user_id)
+    subs = await get_user_subscriptions(user_id)
+    has_active = any(s.expires_at > datetime.now() for s in subs)
+    is_trial_used = (user.is_trial_used if user else False) or has_active
+
     text = get_text(lang_code, "lang_changed")
-    
     await callback.message.delete()
-    await callback.message.answer(text, reply_markup=get_main_kb(lang_code))
+    await callback.message.answer(text, reply_markup=get_main_kb(lang_code, is_trial_used=is_trial_used))
     await callback.answer()
