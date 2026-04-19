@@ -159,7 +159,7 @@ async def sync_marzban_settings():
                 expire_ts = int(active_time.expires_at.timestamp())
                 payload = {
                     "expire": expire_ts,
-                    "data_limit": int(200 * 1024**3),
+                    "data_limit": int((30 if marzban_username.startswith("trial_") else 200) * 1024**3),
                     "data_limit_reset_strategy": "month",
                     "status": "active"
                 }
@@ -169,7 +169,7 @@ async def sync_marzban_settings():
                 expire_ts = int(active_time.expires_at.timestamp())
                 payload = {
                     "expire": expire_ts,
-                    "data_limit": 200 * 1024**3,
+                    "data_limit": int((30 if marzban_username.startswith("trial_") else 200) * 1024**3),
                     "data_limit_reset_strategy": "month",
                     "status": "active"
                 }

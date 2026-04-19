@@ -137,18 +137,18 @@ async def do_sign_in(user_id: int) -> dict:
 
     # 给用户加流量（更新数据库订阅）
     if reward_gb > 0:
-        conn.execute("""
-            UPDATE subscriptions SET traffic_gb = COALESCE(traffic_gb,0) + ?
-            WHERE user_id=? AND plan_type='traffic'
-        """, (int(reward_gb), user_id))
-
-        # 如果没有流量包订阅，创建一个
         existing = conn.execute(
-            "SELECT id FROM subscriptions WHERE user_id=? AND plan_type='traffic'",
+            "SELECT id, traffic_gb FROM subscriptions WHERE user_id=? AND plan_type='traffic'",
             (user_id,)
         ).fetchone()
 
-        if not existing:
+        if existing:
+            conn.execute(
+                "UPDATE subscriptions SET traffic_gb = COALESCE(traffic_gb,0) + ? WHERE id=?",
+                (int(reward_gb), existing[0])
+            )
+            new_traffic_gb = (existing[1] or 0) + int(reward_gb)
+        else:
             from datetime import datetime as dt
             expire = (dt.now() + timedelta(days=3650)).strftime('%Y-%m-%d %H:%M:%S')
             marzban_username = "user_" + str(user_id)
@@ -156,6 +156,42 @@ async def do_sign_in(user_id: int) -> dict:
                 INSERT INTO subscriptions (user_id, vless_key, server_id, expires_at, plan_type, traffic_gb, marzban_username)
                 VALUES (?,?,?,?,?,?,?)
             """, (user_id, "", 1, expire, "traffic", int(reward_gb), marzban_username))
+            new_traffic_gb = int(reward_gb)
+
+        conn.commit()
+
+        # 同步到 Marzban
+        try:
+            import asyncio
+            from src.services.marzban_api import api
+            import aiohttp
+
+            marzban_username = conn.execute(
+                "SELECT marzban_username FROM subscriptions WHERE user_id=? AND plan_type='traffic'",
+                (user_id,)
+            ).fetchone()
+
+            if marzban_username and marzban_username[0]:
+                async def sync_marzban():
+                    headers = await api._headers()
+                    payload = {
+                        "data_limit": int(new_traffic_gb * 1024**3),
+                        "data_limit_reset_strategy": "no_reset",
+                        "status": "active"
+                    }
+                    async with aiohttp.ClientSession() as sess:
+                        async with sess.put(
+                            api.host + "/api/user/" + marzban_username[0],
+                            json=payload,
+                            headers=headers
+                        ) as r:
+                            result = await r.json()
+                            return result
+
+                loop = asyncio.get_event_loop()
+                loop.create_task(sync_marzban())
+        except Exception as e:
+            pass
 
     # 给用户加余额
     if reward_balance > 0:
@@ -166,6 +202,75 @@ async def do_sign_in(user_id: int) -> dict:
 
     conn.commit()
     conn.close()
+
+    conn.commit()
+    conn.close()
+
+    # 同步到 Marzban（签到后立即更新流量）
+    try:
+        from src.services.marzban_api import api as _mapi
+        import aiohttp as _ahttp
+        from datetime import datetime as _dt
+
+        # 重新查询最新订阅数据
+        _time_sub = conn.execute(
+            "SELECT expires_at FROM subscriptions WHERE user_id=? AND plan_type='time' ORDER BY expires_at DESC LIMIT 1",
+            (user_id,)
+        ).fetchone()
+        _traffic_sub = conn.execute(
+            "SELECT traffic_gb FROM subscriptions WHERE user_id=? AND plan_type='traffic' LIMIT 1",
+            (user_id,)
+        ).fetchone()
+        _marzban_user = conn.execute(
+            "SELECT marzban_username FROM subscriptions WHERE user_id=? AND marzban_username IS NOT NULL LIMIT 1",
+            (user_id,)
+        ).fetchone()
+
+        if _marzban_user and _marzban_user[0]:
+            _username = _marzban_user[0]
+            _is_trial = _username.startswith("trial_")
+            _monthly_gb = 30 if _is_trial else 200
+
+            if _time_sub and _traffic_sub:
+                _expire_ts = int(_dt.fromisoformat(_time_sub[0].split(".")[0]).timestamp())
+                _total_gb = _monthly_gb + (_traffic_sub[0] or 0)
+                _payload = {
+                    "expire": _expire_ts,
+                    "data_limit": int(_total_gb * 1024**3),
+                    "data_limit_reset_strategy": "no_reset",
+                    "status": "active"
+                }
+            elif _time_sub:
+                _expire_ts = int(_dt.fromisoformat(_time_sub[0].split(".")[0]).timestamp())
+                _payload = {
+                    "expire": _expire_ts,
+                    "data_limit": int(_monthly_gb * 1024**3),
+                    "data_limit_reset_strategy": "month",
+                    "status": "active"
+                }
+            elif _traffic_sub:
+                _payload = {
+                    "expire": 0,
+                    "data_limit": int((_traffic_sub[0] or 0) * 1024**3),
+                    "data_limit_reset_strategy": "no_reset",
+                    "status": "active"
+                }
+            else:
+                _payload = None
+
+            if _payload:
+                async def _sync():
+                    _headers = await _mapi._headers()
+                    async with _ahttp.ClientSession() as _sess:
+                        await _sess.put(
+                            _mapi.host + "/api/user/" + _username,
+                            json=_payload,
+                            headers=_headers
+                        )
+                import asyncio
+                asyncio.get_event_loop().create_task(_sync())
+    except Exception:
+        pass
 
     return {
         "already": False,
