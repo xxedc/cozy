@@ -33,6 +33,12 @@
                     "shortIds": [
                         "abcd1234"
                     ]
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -67,6 +73,12 @@
                 "wsSettings": {
                     "path": "/vmess",
                     "headers": {}
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -102,6 +114,12 @@
                 "wsSettings": {
                     "path": "/vless",
                     "headers": {}
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -132,6 +150,12 @@
                             "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
                         }
                     ]
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -151,6 +175,14 @@
             "settings": {
                 "clients": [],
                 "network": "tcp,udp"
+            },
+            "streamSettings": {
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
+                }
             },
             "sniffing": {
                 "enabled": true,
@@ -185,6 +217,12 @@
                 "grpcSettings": {
                     "serviceName": "vless-grpc",
                     "multiMode": false
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -219,6 +257,12 @@
                 "grpcSettings": {
                     "serviceName": "vmess-grpc",
                     "multiMode": false
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -253,6 +297,12 @@
                 "wsSettings": {
                     "path": "/trojan",
                     "headers": {}
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -287,6 +337,12 @@
                 "grpcSettings": {
                     "serviceName": "trojan-grpc",
                     "multiMode": false
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -322,6 +378,12 @@
                 "httpupgradeSettings": {
                     "path": "/vless-hu",
                     "host": ""
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -356,6 +418,12 @@
                 "httpupgradeSettings": {
                     "path": "/vmess-hu",
                     "host": ""
+                },
+                "sockopt": {
+                    "tcpFastOpen": true,
+                    "tcpKeepAliveIdle": 60,
+                    "tcpKeepAliveInterval": 30,
+                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {

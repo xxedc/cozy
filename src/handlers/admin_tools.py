@@ -319,57 +319,148 @@ async def promo_delete_handler(callback: CallbackQuery):
         logger.exception("删除优惠码 " + str(promo_id) + " 时出错")
         await callback.answer("❌ 删除失败，请查看日志。", show_alert=True)
 
+
 @router.callback_query(F.data == "admin_stats_full")
-async def admin_stats_shortcut(callback: CallbackQuery, state: FSMContext):
-    from src.services.marzban_api import api as marz_api
-    import aiohttp as aio
+async def admin_stats_full(callback: CallbackQuery, t, lang):
+    import sqlite3
+    from datetime import datetime, timedelta
+    from src.services.marzban_api import api
+    import aiohttp
 
-    await callback.answer()
-    loading = await callback.message.answer("⏳ 正在获取统计数据...")
+    conn = sqlite3.connect('/opt/telegram-vpn-shop/shop.db')
+    now = datetime.now()
+    today = now.date().isoformat()
+    week_ago = (now - timedelta(days=7)).isoformat()
+    month_ago = (now - timedelta(days=30)).isoformat()
 
+    # 用户统计
+    total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    new_today = conn.execute("SELECT COUNT(*) FROM users WHERE created_at >= ?", (today,)).fetchone()[0]
+    new_week = conn.execute("SELECT COUNT(*) FROM users WHERE created_at >= ?", (week_ago,)).fetchone()[0]
+    new_month = conn.execute("SELECT COUNT(*) FROM users WHERE created_at >= ?", (month_ago,)).fetchone()[0]
+
+    # 订阅统计
+    active_subs = conn.execute(
+        "SELECT COUNT(DISTINCT user_id) FROM subscriptions WHERE expires_at > ?",
+        (now.isoformat(),)
+    ).fetchone()[0]
+    time_subs = conn.execute(
+        "SELECT COUNT(*) FROM subscriptions WHERE plan_type='time' AND expires_at > ?",
+        (now.isoformat(),)
+    ).fetchone()[0]
+    traffic_subs = conn.execute(
+        "SELECT COUNT(*) FROM subscriptions WHERE plan_type='traffic' AND expires_at > ?",
+        (now.isoformat(),)
+    ).fetchone()[0]
+
+    # 收入统计
+    total_income = conn.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM transactions WHERE amount > 0"
+    ).fetchone()[0]
+    today_income = conn.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM transactions WHERE amount > 0 AND created_at >= ?",
+        (today,)
+    ).fetchone()[0]
+    week_income = conn.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM transactions WHERE amount > 0 AND created_at >= ?",
+        (week_ago,)
+    ).fetchone()[0]
+    month_income = conn.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM transactions WHERE amount > 0 AND created_at >= ?",
+        (month_ago,)
+    ).fetchone()[0]
+
+    # 签到统计
+    total_signins = conn.execute("SELECT COUNT(*) FROM sign_in_records").fetchone()[0]
+    today_signins = conn.execute(
+        "SELECT COUNT(*) FROM sign_in_records WHERE sign_date=?", (today,)
+    ).fetchone()[0]
+
+    # 余额统计
+    total_balance = conn.execute("SELECT COALESCE(SUM(balance),0) FROM users").fetchone()[0]
+
+    conn.close()
+
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔄 刷新", callback_data="admin_stats_full")
+    builder.button(text="🔙 返回", callback_data="admin_home")
+    builder.adjust(2)
+
+    text = (
+        "╔══════════════════╗\n"
+        "      📊 运营统计\n"
+        "╚══════════════════╝\n\n"
+        "━━━━━━━━━━━━\n"
+        "👥 <b>用户数据</b>\n\n"
+        "总用户：<b>" + str(total_users) + "</b>\n"
+        "今日新增：<b>" + str(new_today) + "</b>\n"
+        "本周新增：<b>" + str(new_week) + "</b>\n"
+        "本月新增：<b>" + str(new_month) + "</b>\n\n"
+        "━━━━━━━━━━━━\n"
+        "📦 <b>订阅数据</b>\n\n"
+        "活跃用户：<b>" + str(active_subs) + "</b>\n"
+        "时间套餐：<b>" + str(time_subs) + "</b>\n"
+        "流量套餐：<b>" + str(traffic_subs) + "</b>\n\n"
+        "━━━━━━━━━━━━\n"
+        "💰 <b>收入数据</b>\n\n"
+        "今日收入：<b>" + str(today_income) + "¥</b>\n"
+        "本周收入：<b>" + str(week_income) + "¥</b>\n"
+        "本月收入：<b>" + str(month_income) + "¥</b>\n"
+        "累计收入：<b>" + str(total_income) + "¥</b>\n\n"
+        "━━━━━━━━━━━━\n"
+        "📅 <b>签到数据</b>\n\n"
+        "今日签到：<b>" + str(today_signins) + "</b> 人\n"
+        "累计签到：<b>" + str(total_signins) + "</b> 次\n\n"
+        "━━━━━━━━━━━━\n"
+        "💵 <b>余额数据</b>\n\n"
+        "用户总余额：<b>" + str(total_balance) + "¥</b>\n\n"
+        "🕒 更新时间：" + now.strftime("%m-%d %H:%M")
+    )
+
+    # 从 Marzban 获取流量统计
     try:
-        headers = await marz_api._headers()
-        async with aio.ClientSession() as sess:
-            async with sess.get(marz_api.host + "/api/system", headers=headers) as r:
-                sys_data = await r.json()
-            async with sess.get(marz_api.host + "/api/users?limit=500", headers=headers) as r2:
-                users_data = await r2.json()
+        from src.database.core import async_session
+        from src.database.models import Subscription
+        from sqlalchemy import select
+        from src.services.marzban_api import api
+        import aiohttp
 
-        all_users = users_data.get("users", [])
-        active_count = sum(1 for u in all_users if u.get("status") == "active")
-        total_traffic = sum((u.get("used_traffic") or 0) for u in all_users)
-        total_gb = round(total_traffic / 1024**3, 2)
+        async with async_session() as session:
+            subs = (await session.scalars(select(Subscription))).all()
 
-        top_users = sorted(all_users, key=lambda u: u.get("used_traffic") or 0, reverse=True)[:5]
-        top_lines = ""
-        for i, u in enumerate(top_users, 1):
-            used = round((u.get("used_traffic") or 0) / 1024**3, 2)
-            name = u.get("username", "unknown")
-            top_lines += "\n  " + str(i) + ". " + name + " — " + str(used) + " GB"
+        total_used = 0
+        checked = set()
+        headers = await api._headers()
 
-        cpu = sys_data.get("cpu_usage", 0)
-        mem = sys_data.get("mem_used", 0)
-        mem_total = sys_data.get("mem_total", 1)
-        mem_pct = round(mem / mem_total * 100) if mem_total else 0
-        inc_total = round((sys_data.get("incoming_bandwidth") or 0) / 1024**3, 2)
-        out_total = round((sys_data.get("outgoing_bandwidth") or 0) / 1024**3, 2)
+        async with aiohttp.ClientSession() as sess:
+            for sub in subs:
+                if not sub.marzban_username or sub.marzban_username in checked:
+                    continue
+                checked.add(sub.marzban_username)
+                try:
+                    async with sess.get(
+                        api.host + "/api/user/" + sub.marzban_username,
+                        headers=headers
+                    ) as r:
+                        if r.status == 200:
+                            d = await r.json()
+                            total_used += d.get("used_traffic") or 0
+                except:
+                    pass
 
-        text = (
-            "<b>📊 节点统计数据</b>\n\n"
-            "<b>🖥 服务器状态</b>\n"
-            "  CPU：" + str(cpu) + "%\n"
-            "  内存：" + str(mem_pct) + "%\n\n"
-            "<b>📶 流量统计</b>\n"
-            "  总入站：" + str(inc_total) + " GB\n"
-            "  总出站：" + str(out_total) + " GB\n"
-            "  全用户已用：" + str(total_gb) + " GB\n\n"
-            "<b>👥 用户统计</b>\n"
-            "  总用户：" + str(len(all_users)) + "\n"
-            "  活跃中：" + str(active_count) + "\n\n"
-            "<b>🏆 流量 Top 5：</b>" + top_lines
+        total_used_gb = round(total_used / 1024**3, 2)
+        text += (
+            "\n━━━━━━━━━━━━\n"
+            "📡 <b>流量统计</b>\n\n"
+            "全部用户已用流量：<b>" + str(total_used_gb) + " GB</b>\n"
+            "活跃用户数：<b>" + str(len(checked)) + "</b>\n"
         )
     except Exception as e:
-        text = "❌ 获取失败：" + str(e)
+        text += "\n⚠️ 流量统计获取失败"
 
-    await loading.delete()
-    await callback.message.answer(text, parse_mode="HTML", reply_markup=admin_back_kb("admin_home"))
+    from contextlib import suppress
+    from aiogram.exceptions import TelegramBadRequest
+    with suppress(TelegramBadRequest):
+        await callback.message.edit_text(text, parse_mode="HTML", reply_markup=builder.as_markup())
+    await callback.answer()

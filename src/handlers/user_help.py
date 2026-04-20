@@ -89,7 +89,14 @@ async def show_guides(callback: CallbackQuery, t, lang):
         "3. 粘贴订阅链接\n"
         "4. 更新并连接\n\n"
         "━━━━━━━━━━━━\n\n"
-        "💡 推荐新手：Clash / v2rayNG / Shadowrocket\n"
+        "⚠️ <b>Clash Meta 用户注意</b>\n\n"
+        "部分版本不支持 VLESS Reality\n"
+        "推荐选择以下节点：\n"
+        "🎬 DC · 流媒体（Trojan WS）\n"
+        "🌐 DC · 稳定（VMess WS）\n"
+        "🔒 DC · 兼容（Shadowsocks）\n\n"
+        "━━━━━━━━━━━━\n\n"
+        "💡 推荐新手：Shadowrocket / v2rayNG\n"
         "📌 订阅链接在「我的订阅」中获取"
     )
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")

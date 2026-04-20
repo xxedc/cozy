@@ -173,7 +173,13 @@ async def activate_promo(tg_id: int, code_text: str, key_data: str = None, marzb
             if subscription_id:
                 sub = await session.scalar(select(Subscription).where(Subscription.id == subscription_id, Subscription.user_id == tg_id))
             else:
-                sub = await session.scalar(select(Subscription).where(Subscription.user_id == tg_id).order_by(Subscription.expires_at.desc()).limit(1))
+                # 只取时间套餐，不取流量包
+                sub = await session.scalar(
+                    select(Subscription).where(
+                        Subscription.user_id == tg_id,
+                        Subscription.plan_type == 'time'
+                    ).order_by(Subscription.expires_at.desc()).limit(1)
+                )
             
             if sub:
                 # Если подписка уже истекла, добавляем дни к текущему моменту (чтобы сразу заработала)
@@ -182,6 +188,30 @@ async def activate_promo(tg_id: int, code_text: str, key_data: str = None, marzb
                     sub.expires_at = datetime.now() + timedelta(days=promo.value)
                 else:
                     sub.expires_at += timedelta(days=promo.value)
+
+                # 同步到 Marzban
+                try:
+                    from src.services.marzban_api import api as _mapi
+                    import aiohttp as _ahttp
+                    _expire_ts = int(sub.expires_at.timestamp())
+                    _username = sub.marzban_username
+                    _is_trial = _username.startswith("trial_") if _username else False
+                    _monthly_gb = 30 if _is_trial else 200
+                    _payload = {
+                        "expire": _expire_ts,
+                        "data_limit": int(_monthly_gb * 1024**3),
+                        "data_limit_reset_strategy": "month",
+                        "status": "active"
+                    }
+                    _headers = await _mapi._headers()
+                    async with _ahttp.ClientSession() as _sess:
+                        await _sess.put(
+                            _mapi.host + "/api/user/" + _username,
+                            json=_payload,
+                            headers=_headers
+                        )
+                except Exception:
+                    pass
                 
                 # Если статус был expired/banned, возвращаем active
                 if sub.status != 'active':

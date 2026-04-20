@@ -59,8 +59,8 @@ async def process_promo_code(message: Message, state: FSMContext, t, lang):
             subs = await get_user_subscriptions(user_id)
             valid_subs = [s for s in subs if s.status != 'banned'] # Исключаем забаненные, если нужно
             
-            if len(valid_subs) > 1:
-                # Если подписок несколько — даем выбор
+            if False and len(valid_subs) > 1:
+                # 禁用多订阅选择，直接用最新的时间套餐
                 await message.answer(t("choose_sub_promo"), reply_markup=promo_sub_select_kb(valid_subs, lang), parse_mode="HTML")
                 await state.update_data(promo_code=code)
                 await state.set_state(PromoState.waiting_for_sub_selection)

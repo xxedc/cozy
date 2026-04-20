@@ -53,11 +53,80 @@ async def get_profile_text(user_id: int, t, lang: str):
                     sub_url = s.subscription_url
                     break
 
+            from datetime import datetime as _dt
+
+            last_online_str = "从未在线"
+            client_str = "未知"
+            sub_updated_str = "未知"
+
+            try:
+                from src.services.marzban_api import api as _mapi
+                import aiohttp as _ahttp
+                _headers = await _mapi._headers()
+                async with _ahttp.ClientSession() as _sess:
+                    async with _sess.get(_mapi.host + "/api/user/" + best.marzban_username, headers=_headers) as _r:
+                        _d = await _r.json()
+
+                        def _time_ago(dt_str):
+                            if not dt_str:
+                                return "从未"
+                            try:
+                                _dt2 = _dt.fromisoformat(dt_str.replace("Z","").split(".")[0])
+                                _mins = int((_dt.now() - _dt2).total_seconds() / 60)
+                                if _mins < 1: return "刚刚"
+                                elif _mins < 60: return str(_mins) + " 分钟前"
+                                elif _mins < 1440: return str(_mins // 60) + " 小时前"
+                                else: return str(_mins // 1440) + " 天前"
+                            except: return "未知"
+
+                        last_online_str = _time_ago(_d.get("online_at"))
+                        sub_updated_str = _time_ago(_d.get("sub_updated_at"))
+
+                        # 解析客户端
+                        ua = _d.get("sub_last_user_agent") or ""
+                        if "Shadowrocket" in ua:
+                            client_str = "Shadowrocket 🍏"
+                        elif "Egern" in ua or "egern" in ua:
+                            client_str = "Egern 🍏"
+                        elif "Hiddify" in ua or "hiddify" in ua:
+                            client_str = "Hiddify 📱"
+                        elif "Stash" in ua:
+                            client_str = "Stash 🍏"
+                        elif "Surge" in ua:
+                            client_str = "Surge 🍏"
+                        elif "Quantumult" in ua:
+                            client_str = "Quantumult 🍏"
+                        elif "Streisand" in ua:
+                            client_str = "Streisand 🍏"
+                        elif "ClashMeta" in ua or "clash.meta" in ua.lower():
+                            client_str = "Clash Meta 📱"
+                        elif "clash" in ua.lower() or "Clash" in ua:
+                            client_str = "Clash 📱"
+                        elif "NekoBox" in ua or "nekobox" in ua.lower():
+                            client_str = "NekoBox 🤖"
+                        elif "v2rayNG" in ua:
+                            client_str = "v2rayNG 🤖"
+                        elif "v2rayN" in ua:
+                            client_str = "v2rayN 💻"
+                        elif "sing-box" in ua.lower() or "SingBox" in ua:
+                            client_str = "sing-box 📱"
+                        elif "Outline" in ua:
+                            client_str = "Outline 📱"
+                        elif ua:
+                            client_str = ua.split("/")[0]
+                        else:
+                            client_str = "未知"
+                            client_str = "未知"
+            except Exception:
+                pass
+
             text += (
                 "━━━━━━━━━━━━\n"
                 "🚀 " + node_name + "\n"
                 "📊 状态：🟢 正常\n"
-                "📱 设备：" + str(online_count) + " / " + limit_str + "\n\n"
+                "📱 最后在线：" + last_online_str + "\n"
+                "📲 客户端：" + client_str + "\n"
+                "🔄 订阅更新：" + sub_updated_str + "\n\n"
             )
 
             if best_time:
@@ -73,7 +142,19 @@ async def get_profile_text(user_id: int, t, lang: str):
             text += "\n━━━━━━━━━━━━\n"
             if best_time:
                 text += "📡 流量：200 GB / 月\n"
-            text += "📉 已用：0.0 GB\n"
+            # 从 Marzban 获取实时已用流量
+            _used_gb = 0.0
+            try:
+                from src.services.marzban_api import api as _mapi
+                import aiohttp as _ahttp
+                _h = await _mapi._headers()
+                async with _ahttp.ClientSession() as _s:
+                    async with _s.get(_mapi.host + "/api/user/" + best.marzban_username, headers=_h) as _r:
+                        _d = await _r.json()
+                        _used_gb = round((_d.get("used_traffic") or 0) / 1024**3, 2)
+            except Exception:
+                pass
+            text += "📉 已用：" + str(_used_gb) + " GB\n"
 
             if best_traffic:
                 tgb = getattr(best_traffic, 'traffic_gb', 0) or 0

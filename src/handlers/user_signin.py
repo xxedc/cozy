@@ -6,7 +6,7 @@ import sqlite3
 
 router = Router()
 
-CHANNEL_ID = -1003700936768  # DC加速频道
+CHANNEL_ID = -1003798316924  # DC免费VPN群组
 
 # 签到奖励配置（连续天数 -> GB）
 SIGNIN_REWARDS = {
@@ -151,7 +151,12 @@ async def do_sign_in(user_id: int) -> dict:
         else:
             from datetime import datetime as dt
             expire = (dt.now() + timedelta(days=3650)).strftime('%Y-%m-%d %H:%M:%S')
-            marzban_username = "user_" + str(user_id)
+            # 用和时间套餐相同的 marzban_username
+            existing_time = conn.execute(
+                "SELECT marzban_username FROM subscriptions WHERE user_id=? AND plan_type='time' LIMIT 1",
+                (user_id,)
+            ).fetchone()
+            marzban_username = existing_time[0] if existing_time else "user_" + str(user_id)
             conn.execute("""
                 INSERT INTO subscriptions (user_id, vless_key, server_id, expires_at, plan_type, traffic_gb, marzban_username)
                 VALUES (?,?,?,?,?,?,?)
@@ -295,7 +300,7 @@ async def cmd_signin(message: Message):
 
         builder = InlineKeyboardBuilder()
         builder.button(text="📊 签到统计", callback_data="signin_stats")
-        builder.button(text="📢 加入频道领礼包", callback_data="join_channel")
+        builder.button(text="🎁 入群领流量包", callback_data="join_channel")
         builder.button(text="📤 分享给好友 +2¥", url="https://t.me/share/url?url=https://t.me/Dcxxe_bot&text=🚀推荐一个好用的VPN机器人，注册就送7天试用！")
         builder.adjust(1)
 
@@ -323,7 +328,7 @@ async def cmd_signin(message: Message):
 
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 签到统计", callback_data="signin_stats")
-    builder.button(text="📢 加入频道领礼包", callback_data="join_channel")
+    builder.button(text="🎁 入群领流量包", callback_data="join_channel")
     # 分享按钮
     builder.button(text="📤 已分享到群组，领取 +2¥", callback_data="share_reward")
     builder.button(text="📤 分享给好友", url="https://t.me/share/url?url=https://t.me/Dcxxe_bot&text=🚀推荐好用的VPN机器人，注册送7天！")
@@ -413,13 +418,13 @@ async def join_channel(callback: CallbackQuery):
         return
 
     builder = InlineKeyboardBuilder()
-    builder.button(text="📢 加入频道 @DCxxec", url="https://t.me/DCxxec")
+    builder.button(text="👥 加入群组 @DCxxeo", url="https://t.me/DCxxeo")
     builder.button(text="✅ 我已加入，领取奖励", callback_data="verify_channel")
     builder.button(text="🔙 返回", callback_data="back_to_profile")
     builder.adjust(1)
 
     await callback.message.edit_text(
-        "📢 <b>加入频道领大礼包</b>\n\n"
+        "🎁 <b>入群领流量包</b>\n\n"
         "━━━━━━━━━━━━\n\n"
         "🎁 加入即可获得：\n"
         "  • <b>+7天</b> 订阅时间\n"
@@ -518,7 +523,7 @@ async def verify_channel(callback: CallbackQuery):
         "  • <b>+7天</b> 订阅时间\n"
         "  • <b>+20GB</b> 流量包\n\n"
         "━━━━━━━━━━━━\n\n"
-        "感谢关注 @DCxxec 🎊",
+        "感谢加入 @DCxxeo 🎊",
         parse_mode="HTML",
         reply_markup=builder.as_markup()
     )

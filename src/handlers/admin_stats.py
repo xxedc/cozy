@@ -121,17 +121,6 @@ async def public_stats(message: Message, t):
         else:
             node = "🌐 " + (best.server.name if best.server else loc)
 
-        lines.append("━━━━━━━━━━━━")
-        lines.append("📡 节点：" + node)
-
-        # 时间套餐到期（时间套餐永远显示实际到期时间）
-        if best_time:
-            days_left = (best_time.expires_at - now).days
-            lines.append("⏳ 订阅到期：" + best_time.expires_at.strftime("%Y-%m-%d %H:%M:%S"))
-            lines.append("⏱ 剩余：" + str(days_left) + " 天")
-        else:
-            lines.append("⏳ 订阅到期：无时间套餐")
-
         # 从 Marzban 获取流量
         used_bytes = 0
         marzban_limit = 0
@@ -210,7 +199,7 @@ async def public_stats(message: Message, t):
                 "📥 一键订阅：",
                 "<code>" + sub_url + "</code>",
                 "",
-                "📌 支持：V2Ray / Clash / Shadowrocket / Surge",
+                "📌 <b>支持所有主流客户端</b>\n\n""🍏 iOS / macOS\n""Shadowrocket · Stash · Surge · Egern · Quantumult X\n\n""🤖 Android\n""v2rayNG · Hiddify · NekoBox · SagerNet\n\n""💻 Windows / Linux\n""Clash Verge · v2rayN · sing-box · Nekoray\n\n""🌐 全平台\n""Outline · Streisand",
             ]
         else:
             lines.append("💡 购买套餐后获得订阅链接")

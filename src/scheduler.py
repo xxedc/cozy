@@ -200,6 +200,85 @@ async def sync_marzban_settings():
         except Exception as e:
             logger.warning("同步 Marzban 设置失败 " + marzban_username + ": " + str(e))
 
+
+async def send_daily_group_message():
+    """每天发送不同消息到群组"""
+    from src.bot import bot
+    from datetime import datetime
+    from loguru import logger
+
+    GROUP_ID = -1003798316924
+    BOT_LINK = "@Dcxxe_bot"
+
+    weekday = datetime.now().weekday()  # 0=周一 6=周日
+
+    messages = {
+        0: (  # 周一：节点状态
+            "🌐 <b>本周节点状态</b>\n\n"
+            "🟢 全球通：正常运行\n"
+            "⚡ 平均延迟：18ms\n"
+            "📶 可用节点：全部正常\n\n"
+            "💡 连接慢？切换节点试试\n"
+            "👉 " + BOT_LINK
+        ),
+        1: (  # 周二：签到提醒
+            "📅 <b>每日签到提醒</b>\n\n"
+            "今日签到可获得：<b>+5GB</b> 流量\n"
+            "连续7天额外：<b>+15GB</b> 🎁\n"
+            "连续30天额外：<b>+20GB</b> 🏆\n\n"
+            "👉 " + BOT_LINK + " 立即签到"
+        ),
+        2: (  # 周三：邀请返利
+            "👥 <b>邀请好友赚钱</b>\n\n"
+            "好友注册 → <b>+5¥</b>\n"
+            "好友购买 → <b>10%返佣</b>\n"
+            "还能延长<b>7天</b>订阅！\n\n"
+            "👉 " + BOT_LINK + " 获取邀请链接"
+        ),
+        3: (  # 周四：套餐介绍
+            "💰 <b>套餐价格一览</b>\n\n"
+            "🗓 1个月  <b>15¥</b> / 200GB\n"
+            "🗓 3个月  <b>40¥</b> / 600GB 🔥\n"
+            "🗓 12个月 <b>140¥</b> 最划算 👑\n"
+            "📦 流量包 <b>35¥</b> / 500GB\n\n"
+            "👉 " + BOT_LINK + " 立即购买"
+        ),
+        4: (  # 周五：协议介绍
+            "🔐 <b>支持全部主流协议</b>\n\n"
+            "✔ VLESS Reality（最强抗封锁）\n"
+            "✔ VMess / Trojan\n"
+            "✔ Shadowsocks\n\n"
+            "📱 支持所有设备\n"
+            "iOS / Android / Windows / Mac\n\n"
+            "👉 " + BOT_LINK + " 免费试用7天"
+        ),
+        5: (  # 周六：用户福利
+            "🎁 <b>本周福利提醒</b>\n\n"
+            "📅 每日签到最高 <b>+15GB</b>\n"
+            "📢 加入群组领 <b>+20GB</b>\n"
+            "👥 邀请1人得 <b>+5¥</b>\n\n"
+            "还没领取的快来！\n"
+            "👉 " + BOT_LINK
+        ),
+        6: (  # 周日：免费试用
+            "🆓 <b>新用户免费试用</b>\n\n"
+            "注册即送 <b>7天 + 30GB</b>\n"
+            "加入群组再送 <b>20GB</b>\n\n"
+            "全球节点 · 不限速\n"
+            "支持5台设备同时使用\n\n"
+            "👉 " + BOT_LINK + " 立即体验"
+        ),
+    }
+
+    msg = messages.get(weekday, messages[0])
+
+    try:
+        await bot.send_message(GROUP_ID, msg, parse_mode="HTML")
+        logger.info("✅ 每日群组消息发送成功 weekday=" + str(weekday))
+    except Exception as e:
+        logger.warning("❌ 每日群组消息发送失败: " + str(e))
+
+
 def start_scheduler():
     # 每天 10:00 执行统计
     scheduler.add_job(collect_daily_stats, 'cron', hour=10, minute=0)
