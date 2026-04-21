@@ -4,10 +4,34 @@
     },
     "dns": {
         "servers": [
-            "1.1.1.1",
-            "8.8.8.8",
-            "localhost"
-        ]
+            {
+                "address": "https://dns.alidns.com/dns-query",
+                "domains": [
+                    "geosite:cn",
+                    "geosite:private"
+                ],
+                "queryStrategy": "UseIPv4"
+            },
+            {
+                "address": "https+local://1.1.1.1/dns-query",
+                "domains": [
+                    "geosite:geolocation-!cn"
+                ],
+                "queryStrategy": "UseIPv4"
+            },
+            {
+                "address": "https+local://8.8.8.8/dns-query",
+                "domains": [
+                    "geosite:geolocation-!cn"
+                ],
+                "queryStrategy": "UseIPv4",
+                "skipFallback": true
+            },
+            "https://dns.alidns.com/dns-query"
+        ],
+        "queryStrategy": "UseIPv4",
+        "disableCache": false,
+        "disableFallback": false
     },
     "inbounds": [
         {
@@ -25,324 +49,14 @@
                 "realitySettings": {
                     "show": false,
                     "dest": "www.microsoft.com:443",
-                    "xver": 0,
                     "serverNames": [
-                        "www.microsoft.com"
+                        "www.microsoft.com",
+                        "microsoft.com"
                     ],
-                    "privateKey": "yKr0Z6EEm5QtX3BEcVt011xhK_mA9xD6_ZVP3l1SVCQ",
+                    "privateKey": "mJg-oXauqboET7Sl2Sc0J1-hQBhI__zDw80fXv1iASs",
                     "shortIds": [
-                        "abcd1234"
+                        "f59353bc"
                     ]
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "VMESS_WS_TLS",
-            "listen": "0.0.0.0",
-            "port": 2053,
-            "protocol": "vmess",
-            "settings": {
-                "clients": []
-            },
-            "streamSettings": {
-                "network": "ws",
-                "security": "tls",
-                "tlsSettings": {
-                    "minVersion": "1.2",
-                    "certificates": [
-                        {
-                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
-                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
-                        }
-                    ]
-                },
-                "wsSettings": {
-                    "path": "/vmess",
-                    "headers": {}
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "VLESS_WS_TLS",
-            "listen": "0.0.0.0",
-            "port": 2083,
-            "protocol": "vless",
-            "settings": {
-                "clients": [],
-                "decryption": "none"
-            },
-            "streamSettings": {
-                "network": "ws",
-                "security": "tls",
-                "tlsSettings": {
-                    "minVersion": "1.2",
-                    "certificates": [
-                        {
-                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
-                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
-                        }
-                    ]
-                },
-                "wsSettings": {
-                    "path": "/vless",
-                    "headers": {}
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "TROJAN_TCP_TLS",
-            "listen": "0.0.0.0",
-            "port": 2096,
-            "protocol": "trojan",
-            "settings": {
-                "clients": []
-            },
-            "streamSettings": {
-                "network": "tcp",
-                "security": "tls",
-                "tlsSettings": {
-                    "minVersion": "1.2",
-                    "certificates": [
-                        {
-                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
-                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
-                        }
-                    ]
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "SHADOWSOCKS_TCP",
-            "listen": "0.0.0.0",
-            "port": 1080,
-            "protocol": "shadowsocks",
-            "settings": {
-                "clients": [],
-                "network": "tcp,udp"
-            },
-            "streamSettings": {
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "VLESS_GRPC_TLS",
-            "listen": "0.0.0.0",
-            "port": 2087,
-            "protocol": "vless",
-            "settings": {
-                "clients": [],
-                "decryption": "none"
-            },
-            "streamSettings": {
-                "network": "grpc",
-                "security": "tls",
-                "tlsSettings": {
-                    "minVersion": "1.2",
-                    "certificates": [
-                        {
-                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
-                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
-                        }
-                    ]
-                },
-                "grpcSettings": {
-                    "serviceName": "vless-grpc",
-                    "multiMode": false
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "VMESS_GRPC_TLS",
-            "listen": "0.0.0.0",
-            "port": 2082,
-            "protocol": "vmess",
-            "settings": {
-                "clients": []
-            },
-            "streamSettings": {
-                "network": "grpc",
-                "security": "tls",
-                "tlsSettings": {
-                    "minVersion": "1.2",
-                    "certificates": [
-                        {
-                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
-                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
-                        }
-                    ]
-                },
-                "grpcSettings": {
-                    "serviceName": "vmess-grpc",
-                    "multiMode": false
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "TROJAN_WS_TLS",
-            "listen": "0.0.0.0",
-            "port": 2052,
-            "protocol": "trojan",
-            "settings": {
-                "clients": []
-            },
-            "streamSettings": {
-                "network": "ws",
-                "security": "tls",
-                "tlsSettings": {
-                    "minVersion": "1.2",
-                    "certificates": [
-                        {
-                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
-                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
-                        }
-                    ]
-                },
-                "wsSettings": {
-                    "path": "/trojan",
-                    "headers": {}
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "TROJAN_GRPC_TLS",
-            "listen": "0.0.0.0",
-            "port": 2086,
-            "protocol": "trojan",
-            "settings": {
-                "clients": []
-            },
-            "streamSettings": {
-                "network": "grpc",
-                "security": "tls",
-                "tlsSettings": {
-                    "minVersion": "1.2",
-                    "certificates": [
-                        {
-                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
-                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
-                        }
-                    ]
-                },
-                "grpcSettings": {
-                    "serviceName": "trojan-grpc",
-                    "multiMode": false
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
                 }
             },
             "sniffing": {
@@ -376,14 +90,7 @@
                     ]
                 },
                 "httpupgradeSettings": {
-                    "path": "/vless-hu",
-                    "host": ""
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
+                    "path": "/"
                 }
             },
             "sniffing": {
@@ -396,18 +103,18 @@
             }
         },
         {
-            "tag": "VMESS_HTTPUPGRADE_TLS",
+            "tag": "VLESS_GRPC_TLS",
             "listen": "0.0.0.0",
-            "port": 8881,
-            "protocol": "vmess",
+            "port": 2087,
+            "protocol": "vless",
             "settings": {
-                "clients": []
+                "clients": [],
+                "decryption": "none"
             },
             "streamSettings": {
-                "network": "httpupgrade",
+                "network": "grpc",
                 "security": "tls",
                 "tlsSettings": {
-                    "minVersion": "1.2",
                     "certificates": [
                         {
                             "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
@@ -415,15 +122,37 @@
                         }
                     ]
                 },
-                "httpupgradeSettings": {
-                    "path": "/vmess-hu",
-                    "host": ""
-                },
-                "sockopt": {
-                    "tcpFastOpen": true,
-                    "tcpKeepAliveIdle": 60,
-                    "tcpKeepAliveInterval": 30,
-                    "tcpUserTimeout": 30000
+                "grpcSettings": {
+                    "serviceName": "vless-grpc"
+                }
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": [
+                    "http",
+                    "tls",
+                    "quic"
+                ]
+            }
+        },
+        {
+            "tag": "TROJAN_TCP_TLS",
+            "listen": "0.0.0.0",
+            "port": 2096,
+            "protocol": "trojan",
+            "settings": {
+                "clients": []
+            },
+            "streamSettings": {
+                "network": "tcp",
+                "security": "tls",
+                "tlsSettings": {
+                    "certificates": [
+                        {
+                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
+                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
+                        }
+                    ]
                 }
             },
             "sniffing": {
@@ -439,13 +168,28 @@
     "outbounds": [
         {
             "tag": "direct",
-            "protocol": "freedom",
-            "settings": {}
+            "protocol": "freedom"
+        },
+        {
+            "tag": "warp",
+            "protocol": "wireguard",
+            "settings": {
+                "secretKey": "YMWxONDhd4/LOHWyNmGuSC/0MYs5VsMumMH+zyiwbGM=",
+                "address": [
+                    "172.16.0.2/32"
+                ],
+                "mtu": 1280,
+                "peers": [
+                    {
+                        "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+                        "endpoint": "162.159.193.10:2408"
+                    }
+                ]
+            }
         },
         {
             "tag": "block",
-            "protocol": "blackhole",
-            "settings": {}
+            "protocol": "blackhole"
         }
     ],
     "routing": {
@@ -460,16 +204,83 @@
             },
             {
                 "type": "field",
-                "domain": [
-                    "domain:doubleclick.net",
-                    "domain:googlesyndication.com",
-                    "domain:googleadservices.com",
-                    "domain:adnxs.com",
-                    "domain:criteo.com",
-                    "domain:taboola.com",
-                    "domain:outbrain.com"
+                "protocol": [
+                    "bittorrent"
                 ],
                 "outboundTag": "block"
+            },
+            {
+                "type": "field",
+                "domain": [
+                    "domain:doubleclick.net",
+                    "domain:googlesyndication.com"
+                ],
+                "outboundTag": "block"
+            },
+            {
+                "type": "field",
+                "domain": [
+                    "geosite:cn"
+                ],
+                "outboundTag": "direct"
+            },
+            {
+                "type": "field",
+                "ip": [
+                    "geoip:cn"
+                ],
+                "outboundTag": "direct"
+            },
+            {
+                "type": "field",
+                "domain": [
+                    "domain:binance.com",
+                    "domain:binance.net",
+                    "domain:binance.org",
+                    "domain:okx.com",
+                    "domain:okx.org",
+                    "domain:bitget.com",
+                    "domain:bitget.net"
+                ],
+                "outboundTag": "direct"
+            },
+            {
+                "type": "field",
+                "domain": [
+                    "domain:claude.ai",
+                    "domain:anthropic.com",
+                    "domain:cdn.claudeusercontent.com",
+                    "domain:production-assets.anthropic.com",
+                    "domain:openai.com",
+                    "domain:chat.openai.com",
+                    "domain:api.openai.com",
+                    "domain:generativelanguage.googleapis.com",
+                    "domain:googleapis.com",
+                    "domain:youtube.com",
+                    "domain:googlevideo.com",
+                    "domain:ytimg.com",
+                    "domain:ggpht.com",
+                    "domain:x.com",
+                    "domain:twitter.com",
+                    "domain:instagram.com",
+                    "domain:threads.net",
+                    "domain:github.com",
+                    "domain:facebook.com",
+                    "domain:fb.com",
+                    "domain:fbcdn.net",
+                    "geosite:telegram"
+                ],
+                "outboundTag": "direct"
+            },
+            {
+                "type": "field",
+                "domain": [
+                    "domain:javdb.com",
+                    "geosite:netflix",
+                    "geosite:disney",
+                    "geosite:hulu"
+                ],
+                "outboundTag": "warp"
             }
         ]
     }
