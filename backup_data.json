@@ -3,7 +3,7 @@
     {
       "0": 8258898191,
       "1": "gitxxd",
-      "2": 33887,
+      "2": 33607,
       "3": "2026-04-18 02:25:22.382058",
       "4": "en",
       "5": 1,
@@ -14,7 +14,7 @@
     {
       "0": 8171456258,
       "1": "xxedce",
-      "2": 172,
+      "2": 32,
       "3": "2026-04-18 02:31:16.608140",
       "4": "zh",
       "5": 1,
@@ -108,12 +108,12 @@
       "3": null,
       "4": "user_8258898191",
       "5": null,
-      "6": "vless://34ab5c03-5801-43ac-ab88-242b3d01779a@167.179.86.97:8443?security=reality&type=tcp&headerType=&flow=xtls-rprx-vision&path=&host=&sni=www.microsoft.com&fp=chrome&pbk=HaREIyGyfxA3wYy_V56MZCAt3EhvWhpzHDybCjt8aUw&sid=abcd1234#%F0%9F%9A%80%20DC%20%C2%B7%20%E4%B8%BB%E7%BA%BF%EF%BC%88VLESS%20Reality%EF%BC%89",
+      "6": "vless://34ab5c03-5801-43ac-ab88-242b3d01779a@167.179.86.97:8443?security=reality&type=tcp&headerType=&flow=xtls-rprx-vision&path=&host=&sni=www.microsoft.com&fp=chrome&pbk=dzhJc0iH0ftK4gaduQpRyoSte8WE70CMckwnYjQLOnk&sid=f59353bc#%F0%9F%9A%80%20DC%20%C2%B7%20%E4%B8%BB%E7%BA%BF%EF%BC%88VLESS%20Reality%EF%BC%89",
       "7": "active",
-      "8": "2033-07-29 02:25:32.000000",
-      "9": 214558755,
+      "8": "2035-07-29 02:25:32.000000",
+      "9": 450302965,
       "10": 5,
-      "11": "https://s.tlte.top/sub/dXNlcl84MjU4ODk4MTkxLDE3NzY2Mjg1ODQkuW8RdfnPv",
+      "11": "https://s.tlte.top/sub/dXNlcl84MjU4ODk4MTkxLDE3NzY3NDY4MzAz8FSDsAOpx",
       "12": "time",
       "13": 30
     },
@@ -126,7 +126,7 @@
       "5": null,
       "6": "",
       "7": "active",
-      "8": "2027-01-04 02:31:23.000000",
+      "8": "2028-01-04 02:31:23.000000",
       "9": 0,
       "10": 5,
       "11": "https://s.tlte.top/sub/dHJpYWxfODE3MTQ1NjI1OCwxNzc2NDc5NDg1VuXx1Dt9lG",
@@ -175,7 +175,7 @@
       "6": "",
       "7": "active",
       "8": "2036-08-27 05:23:09.000000",
-      "9": 214558755,
+      "9": 450302965,
       "10": null,
       "11": "https://s.tlte.top/sub/dXNlcl84MjU4ODk4MTkxLDE3NzY3MDUzOTU4iUYptg1Jg",
       "12": "traffic",
@@ -494,6 +494,27 @@
       "2": -35,
       "3": "购买流量包 500GB - 🌍 全球通（所有节点）",
       "4": "2026-04-20 17:16:34.591478"
+    },
+    {
+      "0": 25,
+      "1": 8171456258,
+      "2": -140,
+      "3": "购买365天订阅 - 🌍 全球通（所有节点）",
+      "4": "2026-04-21 04:43:36.280504"
+    },
+    {
+      "0": 26,
+      "1": 8258898191,
+      "2": -140,
+      "3": "购买365天订阅 - 🌍 全球通（所有节点）",
+      "4": "2026-04-21 04:46:14.424200"
+    },
+    {
+      "0": 27,
+      "1": 8258898191,
+      "2": -140,
+      "3": "购买365天订阅 - 🌍 全球通（所有节点）",
+      "4": "2026-04-21 04:47:09.104674"
     }
   ],
   "promo_codes": [

@@ -35,12 +35,62 @@
     },
     "inbounds": [
         {
+            "listen": "127.0.0.1",
+            "port": 11982,
+            "protocol": "dokodemo-door",
+            "settings": {
+                "address": "127.0.0.1"
+            },
+            "tag": "API_INBOUND"
+        },
+        {
             "tag": "VLESS_REALITY",
             "listen": "0.0.0.0",
             "port": 8443,
             "protocol": "vless",
             "settings": {
-                "clients": [],
+                "clients": [
+                    {
+                        "email": "16.trial_8258898191",
+                        "id": "2436d1f5-2d7c-41c0-ad3b-1ddc7d788a9d",
+                        "flow": "xtls-rprx-vision"
+                    },
+                    {
+                        "email": "18.trial_8078468447",
+                        "id": "866f2a3f-64eb-4f0c-a917-2cfbb7934100",
+                        "flow": "xtls-rprx-vision"
+                    },
+                    {
+                        "email": "19.user_8258898191",
+                        "id": "34ab5c03-5801-43ac-ab88-242b3d01779a",
+                        "flow": "xtls-rprx-vision"
+                    },
+                    {
+                        "email": "20.trial_6318927936",
+                        "id": "85f8fc20-a893-47a3-a95c-e25c79f698bb",
+                        "flow": "xtls-rprx-vision"
+                    },
+                    {
+                        "email": "21.trial_6096412458",
+                        "id": "4ca423b1-9c29-48c4-8c07-7544e9fc43d5",
+                        "flow": "xtls-rprx-vision"
+                    },
+                    {
+                        "email": "22.trial_7491792464",
+                        "id": "41978a5c-c7ef-415f-a631-bfce8856ec7a",
+                        "flow": "xtls-rprx-vision"
+                    },
+                    {
+                        "email": "23.xxdec",
+                        "id": "c620c0ea-02ac-4035-b2a9-77538490c08c",
+                        "flow": ""
+                    },
+                    {
+                        "email": "24.fdffg",
+                        "id": "7100a5dd-6d3d-4595-93ca-8ad978e74534",
+                        "flow": ""
+                    }
+                ],
                 "decryption": "none"
             },
             "streamSettings": {
@@ -53,10 +103,79 @@
                         "www.microsoft.com",
                         "microsoft.com"
                     ],
-                    "privateKey": "mJg-oXauqboET7Sl2Sc0J1-hQBhI__zDw80fXv1iASs",
+                    "privateKey": "mJg-oXauqboET7Sl2Sc0J1-hQBhI__zDw80fXv1iAWs",
                     "shortIds": [
                         "f59353bc"
+                    ],
+                    "publicKey": "dzhJc0iH0ftK4gaduQpRyoSte8WE70CMckwnYjQLOnk"
+                }
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": [
+                    "http",
+                    "tls",
+                    "quic"
+                ]
+            }
+        },
+        {
+            "tag": "VLESS_GRPC_TLS",
+            "listen": "0.0.0.0",
+            "port": 2087,
+            "protocol": "vless",
+            "settings": {
+                "clients": [
+                    {
+                        "email": "16.trial_8258898191",
+                        "id": "2436d1f5-2d7c-41c0-ad3b-1ddc7d788a9d"
+                    },
+                    {
+                        "email": "18.trial_8078468447",
+                        "id": "866f2a3f-64eb-4f0c-a917-2cfbb7934100"
+                    },
+                    {
+                        "email": "19.user_8258898191",
+                        "id": "34ab5c03-5801-43ac-ab88-242b3d01779a"
+                    },
+                    {
+                        "email": "20.trial_6318927936",
+                        "id": "85f8fc20-a893-47a3-a95c-e25c79f698bb"
+                    },
+                    {
+                        "email": "21.trial_6096412458",
+                        "id": "4ca423b1-9c29-48c4-8c07-7544e9fc43d5"
+                    },
+                    {
+                        "email": "22.trial_7491792464",
+                        "id": "41978a5c-c7ef-415f-a631-bfce8856ec7a"
+                    },
+                    {
+                        "email": "23.xxdec",
+                        "id": "c620c0ea-02ac-4035-b2a9-77538490c08c",
+                        "flow": ""
+                    },
+                    {
+                        "email": "24.fdffg",
+                        "id": "7100a5dd-6d3d-4595-93ca-8ad978e74534",
+                        "flow": ""
+                    }
+                ],
+                "decryption": "none"
+            },
+            "streamSettings": {
+                "network": "grpc",
+                "security": "tls",
+                "tlsSettings": {
+                    "certificates": [
+                        {
+                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
+                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
+                        }
                     ]
+                },
+                "grpcSettings": {
+                    "serviceName": "vless-grpc"
                 }
             },
             "sniffing": {
@@ -90,40 +209,8 @@
                     ]
                 },
                 "httpupgradeSettings": {
-                    "path": "/"
-                }
-            },
-            "sniffing": {
-                "enabled": true,
-                "destOverride": [
-                    "http",
-                    "tls",
-                    "quic"
-                ]
-            }
-        },
-        {
-            "tag": "VLESS_GRPC_TLS",
-            "listen": "0.0.0.0",
-            "port": 2087,
-            "protocol": "vless",
-            "settings": {
-                "clients": [],
-                "decryption": "none"
-            },
-            "streamSettings": {
-                "network": "grpc",
-                "security": "tls",
-                "tlsSettings": {
-                    "certificates": [
-                        {
-                            "certificateFile": "/var/lib/marzban/certs/s.tlte.top.cer",
-                            "keyFile": "/var/lib/marzban/certs/s.tlte.top.cer.key"
-                        }
-                    ]
-                },
-                "grpcSettings": {
-                    "serviceName": "vless-grpc"
+                    "path": "/vless-hu",
+                    "host": "s.tlte.top"
                 }
             },
             "sniffing": {
@@ -141,7 +228,48 @@
             "port": 2096,
             "protocol": "trojan",
             "settings": {
-                "clients": []
+                "clients": [
+                    {
+                        "email": "16.trial_8258898191",
+                        "password": "1ApXKUlSqsmuVdbS7uAMyA",
+                        "flow": ""
+                    },
+                    {
+                        "email": "18.trial_8078468447",
+                        "password": "_LBJjD0Ircwu8Gq6Uwafmg",
+                        "flow": ""
+                    },
+                    {
+                        "email": "19.user_8258898191",
+                        "password": "fZnF3DyVp46DKO34l2NyPg",
+                        "flow": ""
+                    },
+                    {
+                        "email": "20.trial_6318927936",
+                        "password": "ucrI9lYfoS_QczBD3oLAWw",
+                        "flow": ""
+                    },
+                    {
+                        "email": "21.trial_6096412458",
+                        "password": "3YjMXM1BWRQ4xLsVFnQ0aQ",
+                        "flow": ""
+                    },
+                    {
+                        "email": "22.trial_7491792464",
+                        "password": "EhCWbQPGAwCj2Gpc_r5TZw",
+                        "flow": ""
+                    },
+                    {
+                        "email": "23.xxdec",
+                        "password": "3J7d-qe4yuoIa52IlJRiQw",
+                        "flow": ""
+                    },
+                    {
+                        "email": "24.fdffg",
+                        "password": "GFoMK5GN0HgYvtIC4wfglQ",
+                        "flow": ""
+                    }
+                ]
             },
             "streamSettings": {
                 "network": "tcp",
@@ -163,12 +291,93 @@
                     "quic"
                 ]
             }
+        },
+        {
+            "tag": "SHADOWSOCKS_TCP",
+            "listen": "0.0.0.0",
+            "port": 8388,
+            "protocol": "shadowsocks",
+            "settings": {
+                "method": "aes-128-gcm",
+                "clients": [
+                    {
+                        "email": "16.trial_8258898191",
+                        "password": "SF9Kq_YXdSoYfHbLROiT4w",
+                        "method": "chacha20-ietf-poly1305"
+                    },
+                    {
+                        "email": "18.trial_8078468447",
+                        "password": "dxo4eLt6FGYCzmvW0ExfqQ",
+                        "method": "chacha20-ietf-poly1305"
+                    },
+                    {
+                        "email": "19.user_8258898191",
+                        "password": "QMSt2-y2vbkhe3Erq_KUKA",
+                        "method": "chacha20-ietf-poly1305"
+                    },
+                    {
+                        "email": "20.trial_6318927936",
+                        "password": "hCDuuw5A-W_JbLfb-_gJuA",
+                        "method": "chacha20-ietf-poly1305"
+                    },
+                    {
+                        "email": "21.trial_6096412458",
+                        "password": "_nCAVP3tWlwfYoQ_W-N5qQ",
+                        "method": "chacha20-ietf-poly1305"
+                    },
+                    {
+                        "email": "22.trial_7491792464",
+                        "password": "1rPGAEiLaj2iV34OxrSjOQ",
+                        "method": "chacha20-ietf-poly1305"
+                    },
+                    {
+                        "email": "25.msmmmf",
+                        "password": "-JDGgjaLsS5tUqpCaGle2Q",
+                        "method": "chacha20-ietf-poly1305"
+                    },
+                    {
+                        "email": "26.bhbb",
+                        "password": "Tds_Lmtx8NSQIxfzregC4g",
+                        "method": "chacha20-ietf-poly1305"
+                    },
+                    {
+                        "email": "27.gggg",
+                        "password": "NVgbjzEGjEYRY1xyb5i_Xw",
+                        "method": "chacha20-ietf-poly1305"
+                    }
+                ]
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": [
+                    "http",
+                    "tls",
+                    "quic"
+                ]
+            }
         }
     ],
     "outbounds": [
         {
             "tag": "direct",
             "protocol": "freedom"
+        },
+        {
+            "tag": "proxy",
+            "protocol": "wireguard",
+            "settings": {
+                "secretKey": "YMWxONDhd4/LOHWyNmGuSC/0MYs5VsMumMH+zyiwbGM=",
+                "address": [
+                    "172.16.0.2/32"
+                ],
+                "mtu": 1280,
+                "peers": [
+                    {
+                        "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+                        "endpoint": "162.159.193.10:2408"
+                    }
+                ]
+            }
         },
         {
             "tag": "warp",
@@ -196,6 +405,13 @@
         "domainStrategy": "IPIfNonMatch",
         "rules": [
             {
+                "inboundTag": [
+                    "API_INBOUND"
+                ],
+                "outboundTag": "API",
+                "type": "field"
+            },
+            {
                 "type": "field",
                 "ip": [
                     "geoip:private"
@@ -220,6 +436,14 @@
             {
                 "type": "field",
                 "domain": [
+                    "domain:javdb.com",
+                    "domain:www.javdb.com"
+                ],
+                "outboundTag": "warp"
+            },
+            {
+                "type": "field",
+                "domain": [
                     "geosite:cn"
                 ],
                 "outboundTag": "direct"
@@ -233,55 +457,32 @@
             },
             {
                 "type": "field",
-                "domain": [
-                    "domain:binance.com",
-                    "domain:binance.net",
-                    "domain:binance.org",
-                    "domain:okx.com",
-                    "domain:okx.org",
-                    "domain:bitget.com",
-                    "domain:bitget.net"
-                ],
-                "outboundTag": "direct"
-            },
-            {
-                "type": "field",
-                "domain": [
-                    "domain:claude.ai",
-                    "domain:anthropic.com",
-                    "domain:cdn.claudeusercontent.com",
-                    "domain:production-assets.anthropic.com",
-                    "domain:openai.com",
-                    "domain:chat.openai.com",
-                    "domain:api.openai.com",
-                    "domain:generativelanguage.googleapis.com",
-                    "domain:googleapis.com",
-                    "domain:youtube.com",
-                    "domain:googlevideo.com",
-                    "domain:ytimg.com",
-                    "domain:ggpht.com",
-                    "domain:x.com",
-                    "domain:twitter.com",
-                    "domain:instagram.com",
-                    "domain:threads.net",
-                    "domain:github.com",
-                    "domain:facebook.com",
-                    "domain:fb.com",
-                    "domain:fbcdn.net",
-                    "geosite:telegram"
-                ],
-                "outboundTag": "direct"
-            },
-            {
-                "type": "field",
-                "domain": [
-                    "domain:javdb.com",
-                    "geosite:netflix",
-                    "geosite:disney",
-                    "geosite:hulu"
-                ],
-                "outboundTag": "warp"
+                "network": "tcp,udp",
+                "outboundTag": "proxy"
             }
         ]
+    },
+    "api": {
+        "services": [
+            "HandlerService",
+            "StatsService",
+            "LoggerService"
+        ],
+        "tag": "API"
+    },
+    "stats": {},
+    "policy": {
+        "levels": {
+            "0": {
+                "statsUserUplink": true,
+                "statsUserDownlink": true
+            }
+        },
+        "system": {
+            "statsInboundDownlink": false,
+            "statsInboundUplink": false,
+            "statsOutboundDownlink": true,
+            "statsOutboundUplink": true
+        }
     }
 }
