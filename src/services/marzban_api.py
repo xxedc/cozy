@@ -158,4 +158,65 @@ class MarzbanAPI:
         except Exception:
             return 0
 
+    async def list_users_by_prefix(self, prefix: str = "trial_") -> list:
+        """列出所有用户名以 prefix 开头的用户"""
+        try:
+            headers = await self._headers()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.host}/api/users?username={prefix}&limit=500",
+                    headers=headers,
+                ) as r:
+                    data = await r.json()
+                    return data.get("users", [])
+        except Exception:
+            return []
+
+    async def delete_user(self, username: str) -> bool:
+        """删除用户"""
+        try:
+            headers = await self._headers()
+            async with aiohttp.ClientSession() as session:
+                async with session.delete(
+                    f"{self.host}/api/user/{username}",
+                    headers=headers,
+                ) as r:
+                    return r.status in (200, 204)
+        except Exception:
+            return False
+
+    async def cleanup_expired_trials(self, prefix: str = "trial_") -> int:
+        """删除所有已过期的 trial 账号,返回删除的数量"""
+        import time as _time
+        users = await self.list_users_by_prefix(prefix)
+        now = int(_time.time())
+        deleted = 0
+        for u in users:
+            username = u.get("username", "")
+            if not username.startswith(prefix):
+                continue
+            expire = u.get("expire")
+            # 把 ISO 字符串转回时间戳判断
+            is_expired = False
+            if isinstance(expire, str):
+                try:
+                    from datetime import datetime
+                    e = datetime.fromisoformat(expire.replace("Z", "+00:00"))
+                    is_expired = e.timestamp() <= now
+                except Exception:
+                    is_expired = False
+            elif isinstance(expire, (int, float)):
+                is_expired = expire and expire <= now
+            # 如果状态已是 expired/limited 也算
+            if u.get("status") in ("expired", "limited", "disabled"):
+                is_expired = True
+            if is_expired:
+                ok = await self.delete_user(username)
+                if ok:
+                    deleted += 1
+        return deleted
+
+
+
+
 api = MarzbanAPI()
