@@ -195,8 +195,15 @@ def build_keyboard():
         ]
     ])
 
-
 async def send_promo_once():
+    # 发送前先清理过期 trial 账号
+    try:
+        deleted = await pg_api.cleanup_expired_trials("trial_")
+        if deleted > 0:
+            logger.info(f"🗑 已清理过期 trial 账号: {deleted} 个")
+    except Exception as e:
+        logger.warning(f"清理过期账号失败(不影响发送): {e}")
+
     image_key = pick_image_key()
     image_path = os.path.join(PROMO_DIR, f"{image_key}.jpg")
     if not os.path.exists(image_path):
@@ -223,6 +230,8 @@ async def send_promo_once():
                 logger.error(f"发送到 {target_name} 失败: {e}")
     finally:
         await bot.session.close()
+
+
 
 
 def setup_promo_scheduler():
