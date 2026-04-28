@@ -237,3 +237,26 @@ def setup_promo_scheduler():
     scheduler.start()
     logger.info(f"📅 推广定时任务已注册: 每天 {SCHEDULE_HOURS} 点 (北京时间)")
     return scheduler
+
+
+
+
+# ============== /promo 手动触发命令 ==============
+from aiogram import Router, F
+from aiogram.filters import Command
+from aiogram.types import Message
+
+promo_router = Router()
+ADMIN_IDS = [8171456258]  # 你的 TG 数字 ID
+
+
+@promo_router.message(Command("promo"))
+async def cmd_promo(message: Message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+    await message.answer("⏳ 正在手动触发推广发送...")
+    try:
+        await send_promo_once()
+        await message.answer("✅ 推广已发送到群组和频道!")
+    except Exception as e:
+        await message.answer(f"❌ 发送失败:{e}")
