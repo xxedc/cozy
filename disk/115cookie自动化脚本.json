@@ -1,0 +1,57 @@
+# 1. 安装轻量级自动化环境 (大概需要2-3分钟)
+apt update
+apt install -y python3-pip python3-venv
+python3 -m venv 115env
+source 115env/bin/activate
+pip install playwright
+playwright install --with-deps chromium
+
+# 2. 创建自动化脚本
+cat << 'EOF' > get_115.py
+from playwright.sync_api import sync_playwright
+import time
+import subprocess
+
+def main():
+    print("🚀 启动轻量级自动化脚本...")
+    # 开启临时网页服务，方便你用手机看图片
+    httpd = subprocess.Popen(["python3", "-m", "http.server", "8899"])
+    
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        print("🌐 正在获取 115 登录二维码...")
+        page.goto("https://115.com", timeout=60000)
+        time.sleep(5)
+        
+        page.screenshot(path="qr.png") 
+        print("\n✅ 二维码已保存！")
+        print("👉 请立刻在你的手机 Safari 浏览器中打开以下链接查看二维码：")
+        print("http://158.247.252.34:8899/qr.png")
+        print("（看完后保存图片，用 115 App 的'相册识别'功能扫码）\n")
+        
+        print("⏳ 正在耐心等待你扫码确认登录 (3分钟超时)...")
+        try:
+            page.wait_for_url("**/home.115.com/**", timeout=180000)
+            print("🎉 扫码成功！正在提取服务器专属 Cookie...")
+            
+            cookies = page.context.cookies()
+            c_dict = {c['name']: c['value'] for c in cookies}
+            
+            print("\n" + "="*60)
+            print(f"UID={c_dict.get('UID','')}; CID={c_dict.get('CID','')}; SEID={c_dict.get('SEID','')};")
+            print("="*60 + "\n")
+            print("✌️ 大功告成！直接把上面这串纯正的 Cookie 填入 Alist 即可！")
+            
+        except Exception as e:
+            print("❌ 等待超时或出错，请重新运行脚本。")
+        finally:
+            browser.close()
+            httpd.terminate()
+
+if __name__ == "__main__":
+    main()
+EOF
+
+# 3. 开始执行
+python3 get_115.py
