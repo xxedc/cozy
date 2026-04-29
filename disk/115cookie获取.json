@@ -1,0 +1,55 @@
+cat << 'EOF' > get_115.py
+from playwright.sync_api import sync_playwright
+import time
+import subprocess
+
+def main():
+    print("🚀 启动【全量 Cookie 提取版】脚本...")
+    httpd = subprocess.Popen(["python3", "-m", "http.server", "8899"])
+    
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+        page = context.new_page()
+        
+        print("🌐 正在生成新的二维码...")
+        try:
+            page.goto("https://115.com", timeout=45000, wait_until="domcontentloaded")
+            page.wait_for_timeout(5000)
+        except:
+            pass
+        
+        page.screenshot(path="qr.png") 
+        print("\n✅ 二维码已刷新！请访问查看并重新扫码：")
+        print("http://158.247.252.34:8899/qr.png\n")
+        
+        print("⏳ 正在监控全量 Cookie (只要发现 UID 就立刻导出)...")
+        success = False
+        for i in range(60):
+            time.sleep(3)
+            cookies = context.cookies()
+            c_dict = {c['name']: c['value'] for c in cookies}
+            
+            if 'UID' in c_dict:
+                # 核心改动：不再只挑三个，而是把所有 Cookie 拼接成标准格式
+                full_cookie = "; ".join([f"{c['name']}={c['value']}" for c in cookies])
+                print("\n🎉 成功！已抓取到全量标准 Cookie：\n")
+                print("-" * 30 + " 请完整复制下方内容 " + "-" * 30)
+                print(full_cookie)
+                print("-" * 80 + "\n")
+                success = True
+                break
+        
+        if not success:
+            print("\n❌ 未能抓取到，请确认手机是否点击确认登录。")
+        
+        browser.close()
+        httpd.terminate()
+
+if __name__ == "__main__":
+    main()
+EOF
+
+python3 get_115.py
